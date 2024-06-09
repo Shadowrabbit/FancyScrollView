@@ -53,7 +53,7 @@ namespace FancyScrollView
         protected sealed override GameObject CellPrefab => cellGroupTemplate;
 
         /// <inheritdoc/>
-        protected override float CellSize => Scroller.ScrollDirection == ScrollDirection.Horizontal
+        protected override float CellSize => Scroller.scrollDirection == ScrollDirection.Horizontal
             ? cellSize.x
             : cellSize.y;
 
@@ -71,10 +71,10 @@ namespace FancyScrollView
 
             Debug.Assert(startAxisCellCount > 0);
 
-            Context.ScrollDirection = Scroller.ScrollDirection;
+            Context.ScrollDirection = Scroller.scrollDirection;
             Context.GetGroupCount = () => startAxisCellCount;
             Context.GetStartAxisSpacing = () => startAxisSpacing;
-            Context.GetCellSize = () => Scroller.ScrollDirection == ScrollDirection.Horizontal
+            Context.GetCellSize = () => Scroller.scrollDirection == ScrollDirection.Horizontal
                 ? cellSize.y
                 : cellSize.x;
 

@@ -86,7 +86,7 @@ namespace FancyScrollView
         {
             base.Initialize();
 
-            Context.ScrollDirection = Scroller.ScrollDirection;
+            Context.ScrollDirection = Scroller.scrollDirection;
             Context.CalculateScrollSize = () =>
             {
                 var interval = CellSize + spacing;
