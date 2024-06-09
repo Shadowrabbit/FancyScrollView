@@ -20,12 +20,12 @@ namespace FancyScrollView
     {
         [SerializeField] public RectTransform viewport;
         [SerializeField] public ScrollDirection scrollDirection = ScrollDirection.Vertical; //スクロール方向
-        [SerializeField] public MovementType movementType = MovementType.Elastic;
-        [SerializeField] public float elasticity = 0.1f;
-        [SerializeField] public float scrollSensitivity = 1f;
-        [SerializeField] public bool inertia = true;
-        [SerializeField] public float decelerationRate = 0.03f;
-        [SerializeField] public bool draggable = true;
+        [SerializeField] public MovementType movementType = MovementType.Elastic; //コンテンツがスクロール範囲を越えて移動するときに使用する挙動.
+        [SerializeField] public float elasticity = 0.1f; //コンテンツがスクロール範囲を越えて移動するときに使用する弾力性の量.
+        [SerializeField] public float scrollSensitivity = 1f; //端から端まで Drag したときのスクロール位置の変化量.
+        [SerializeField] public bool inertia = true; //慣性を使用するかどうか.trueを指定すると慣性が有効に,falseを指定すると慣性が無効になります.
+        [SerializeField] public float decelerationRate = 0.03f; //スクロールの減速率.inertiaがtrue の場合のみ有効です.
+        [SerializeField] public bool draggable = true; //ならスナップし, <c>false</c>ならスナップしません.
         [SerializeField] public Scrollbar scrollbar = default;
 
         [SerializeField] public Snap snap = new Snap
@@ -42,66 +42,6 @@ namespace FancyScrollView
         public float ViewportSize => scrollDirection == ScrollDirection.Horizontal
             ? viewport.rect.size.x
             : viewport.rect.size.y;
-
-        /// <summary>
-        /// コンテンツがスクロール範囲を越えて移動するときに使用する挙動.
-        /// </summary>
-        public MovementType MovementType
-        {
-            get => movementType;
-            set => movementType = value;
-        }
-
-
-        /// <summary>
-        /// コンテンツがスクロール範囲を越えて移動するときに使用する弾力性の量.
-        /// </summary>
-        public float Elasticity
-        {
-            get => elasticity;
-            set => elasticity = value;
-        }
-
-
-        /// <summary>
-        /// <see cref="ViewportSize"/> の端から端まで Drag したときのスクロール位置の変化量.
-        /// </summary>
-        public float ScrollSensitivity
-        {
-            get => scrollSensitivity;
-            set => scrollSensitivity = value;
-        }
-
-        /// <summary>
-        /// 慣性を使用するかどうか. <c>true</c> を指定すると慣性が有効に, <c>false</c> を指定すると慣性が無効になります.
-        /// </summary>
-        public bool Inertia
-        {
-            get => inertia;
-            set => inertia = value;
-        }
-
-        /// <summary>
-        /// スクロールの減速率. <see cref="Inertia"/> が <c>true</c> の場合のみ有効です.
-        /// </summary>
-        public float DecelerationRate
-        {
-            get => decelerationRate;
-            set => decelerationRate = value;
-        }
-
-        /// <summary>
-        /// <c>true</c> ならスナップし, <c>false</c>ならスナップしません.
-        /// </summary>
-        /// <remarks>
-        /// スナップを有効にすると, 慣性でスクロールが止まる直前に最寄りのセルへ移動します.
-        /// </remarks>
-        public bool SnapEnabled
-        {
-            get => snap.Enable;
-            set => snap.Enable = value;
-        }
-
 
         /// <summary>
         /// Drag 入力を受付けるかどうか.
@@ -154,7 +94,7 @@ namespace FancyScrollView
         [Serializable]
         public class Snap
         {
-            public bool Enable;
+            public bool Enable; //スナップを有効にすると, 慣性でスクロールが止まる直前に最寄りのセルへ移動します.
             public float VelocityThreshold;
             public float Duration;
             public Ease Easing;

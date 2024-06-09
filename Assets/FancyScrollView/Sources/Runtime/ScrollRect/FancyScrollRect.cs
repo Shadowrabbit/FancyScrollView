@@ -77,9 +77,9 @@ namespace FancyScrollView
         float PaddingHeadLength => (paddingHead - spacing * 0.5f) / (CellSize + spacing);
 
         float MaxScrollPosition => ItemsSource.Count
-            - ScrollLength
-            + reuseCellMarginCount * 2f
-            + (paddingHead + paddingTail - spacing) / (CellSize + spacing);
+                                   - ScrollLength
+                                   + reuseCellMarginCount * 2f
+                                   + (paddingHead + paddingTail - spacing) / (CellSize + spacing);
 
         /// <inheritdoc/>
         protected override void Initialize()
@@ -152,7 +152,7 @@ namespace FancyScrollView
         protected void RefreshScroller()
         {
             Scroller.Draggable = Scrollable;
-            Scroller.ScrollSensitivity = ToScrollerPosition(ViewportLength - PaddingHeadLength);
+            Scroller.scrollSensitivity = ToScrollerPosition(ViewportLength - PaddingHeadLength);
             Scroller.Position = ToScrollerPosition(currentPosition);
 
             if (Scroller.Scrollbar)
@@ -213,7 +213,8 @@ namespace FancyScrollView
         /// <param name="easing">移動に使用するイージング.</param>
         /// <param name="alignment">ビューポート内におけるセル位置の基準. 0f(先頭) ~ 1f(末尾).</param>
         /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        protected virtual void ScrollTo(int index, float duration, Ease easing, float alignment = 0.5f, Action onComplete = null)
+        protected virtual void ScrollTo(int index, float duration, Ease easing, float alignment = 0.5f,
+            Action onComplete = null)
         {
             Scroller.ScrollTo(ToScrollerPosition(index, alignment), duration, easing, onComplete);
         }
@@ -224,7 +225,8 @@ namespace FancyScrollView
         /// <param name="viewportLength">ビューポートのサイズ.</param>
         protected void UpdateScrollbarSize(float viewportLength)
         {
-            var contentLength = Mathf.Max(ItemsSource.Count + (paddingHead + paddingTail - spacing) / (CellSize + spacing), 1);
+            var contentLength =
+                Mathf.Max(ItemsSource.Count + (paddingHead + paddingTail - spacing) / (CellSize + spacing), 1);
             Scroller.Scrollbar.size = Scrollable ? Mathf.Clamp01(viewportLength / contentLength) : 1f;
         }
 
@@ -257,7 +259,7 @@ namespace FancyScrollView
         protected float ToScrollerPosition(float position, float alignment = 0.5f)
         {
             var offset = alignment * (ScrollLength - (1f + reuseCellMarginCount * 2f))
-                + (1f - alignment - 0.5f) * spacing / (CellSize + spacing);
+                         + (1f - alignment - 0.5f) * spacing / (CellSize + spacing);
             return ToScrollerPosition(Mathf.Clamp(position - offset, 0f, MaxScrollPosition));
         }
 
@@ -283,15 +285,16 @@ namespace FancyScrollView
                 Debug.LogError("Loop is currently not supported in FancyScrollRect.");
             }
 
-            if (Scroller.SnapEnabled)
+            var snap = Scroller.snap;
+            if (snap != null && snap.Enable)
             {
-                Scroller.SnapEnabled = false;
+                snap.Enable = false;
                 Debug.LogError("Snap is currently not supported in FancyScrollRect.");
             }
 
-            if (Scroller.MovementType == MovementType.Unrestricted)
+            if (Scroller.movementType == MovementType.Unrestricted)
             {
-                Scroller.MovementType = MovementType.Elastic;
+                Scroller.movementType = MovementType.Elastic;
                 Debug.LogError("MovementType.Unrestricted is currently not supported in FancyScrollRect.");
             }
         }
@@ -303,5 +306,7 @@ namespace FancyScrollView
     /// </summary>
     /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
     /// <seealso cref="FancyScrollRect{TItemData, TContext}"/>
-    public abstract class FancyScrollRect<TItemData> : FancyScrollRect<TItemData, FancyScrollRectContext> { }
+    public abstract class FancyScrollRect<TItemData> : FancyScrollRect<TItemData, FancyScrollRectContext>
+    {
+    }
 }
