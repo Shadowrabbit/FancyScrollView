@@ -107,7 +107,7 @@ namespace FancyScrollView
         {
             base.UpdatePosition(Scrollable ? ToFancyScrollViewPosition(p) : 0f);
 
-            if (Scroller.Scrollbar)
+            if (Scroller.scrollbar)
             {
                 if (p > ItemsSource.Count - 1)
                 {
@@ -151,13 +151,13 @@ namespace FancyScrollView
         /// </summary>
         protected void RefreshScroller()
         {
-            Scroller.Draggable = Scrollable;
+            Scroller.draggable = Scrollable;
             Scroller.scrollSensitivity = ToScrollerPosition(ViewportLength - PaddingHeadLength);
             Scroller.Position = ToScrollerPosition(currentPosition);
 
-            if (Scroller.Scrollbar)
+            if (Scroller.scrollbar)
             {
-                Scroller.Scrollbar.gameObject.SetActive(Scrollable);
+                Scroller.scrollbar.gameObject.SetActive(Scrollable);
                 UpdateScrollbarSize(ViewportLength);
             }
         }
@@ -227,7 +227,7 @@ namespace FancyScrollView
         {
             var contentLength =
                 Mathf.Max(ItemsSource.Count + (paddingHead + paddingTail - spacing) / (CellSize + spacing), 1);
-            Scroller.Scrollbar.size = Scrollable ? Mathf.Clamp01(viewportLength / contentLength) : 1f;
+            Scroller.scrollbar.size = Scrollable ? Mathf.Clamp01(viewportLength / contentLength) : 1f;
         }
 
         /// <summary>

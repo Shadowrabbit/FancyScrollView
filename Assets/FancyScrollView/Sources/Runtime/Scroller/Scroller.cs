@@ -18,15 +18,15 @@ namespace FancyScrollView
     public class Scroller : UIBehaviour, IPointerUpHandler, IPointerDownHandler, IBeginDragHandler, IEndDragHandler,
         IDragHandler, IScrollHandler
     {
-        [SerializeField] public RectTransform viewport;
+        [SerializeField] public RectTransform viewport; //ビューポート
         [SerializeField] public ScrollDirection scrollDirection = ScrollDirection.Vertical; //スクロール方向
         [SerializeField] public MovementType movementType = MovementType.Elastic; //コンテンツがスクロール範囲を越えて移動するときに使用する挙動.
         [SerializeField] public float elasticity = 0.1f; //コンテンツがスクロール範囲を越えて移動するときに使用する弾力性の量.
         [SerializeField] public float scrollSensitivity = 1f; //端から端まで Drag したときのスクロール位置の変化量.
         [SerializeField] public bool inertia = true; //慣性を使用するかどうか.trueを指定すると慣性が有効に,falseを指定すると慣性が無効になります.
         [SerializeField] public float decelerationRate = 0.03f; //スクロールの減速率.inertiaがtrue の場合のみ有効です.
-        [SerializeField] public bool draggable = true; //ならスナップし, <c>false</c>ならスナップしません.
-        [SerializeField] public Scrollbar scrollbar = default;
+        [SerializeField] public bool draggable = true; //Drag 入力を受付けるかどうか.
+        [SerializeField] public Scrollbar scrollbar; //スクロールバーのオブジェクト
 
         [SerializeField] public Snap snap = new Snap
         {
@@ -36,6 +36,19 @@ namespace FancyScrollView
             Easing = Ease.InOutCubic
         };
 
+        private readonly AutoScrollState _autoScrollState = new AutoScrollState();
+        private Action<float> _onValueChanged;
+        private Action<int> _onSelectionChanged;
+        private Vector2 _beginDragPointerPosition;
+        private float _scrollStartPosition;
+        private float _prevPosition;
+        private float _currentPosition;
+        private int _totalCount;
+        private bool _hold;
+        private bool _scrolling;
+        private bool _dragging;
+        private float _velocity;
+
         /// <summary>
         /// ビューポートのサイズ.
         /// </summary>
@@ -44,114 +57,137 @@ namespace FancyScrollView
             : viewport.rect.size.y;
 
         /// <summary>
-        /// Drag 入力を受付けるかどうか.
-        /// </summary>
-        public bool Draggable
-        {
-            get => draggable;
-            set => draggable = value;
-        }
-
-        /// <summary>
-        /// スクロールバーのオブジェクト.
-        /// </summary>
-        public Scrollbar Scrollbar => scrollbar;
-
-        /// <summary>
         /// 現在のスクロール位置.
         /// </summary>
         /// <value></value>
         public float Position
         {
-            get => currentPosition;
+            get => _currentPosition;
             set
             {
-                autoScrollState.Reset();
-                velocity = 0f;
-                dragging = false;
-
+                _autoScrollState.Reset();
+                _velocity = 0f;
+                _dragging = false;
                 UpdatePosition(value);
-            }
-        }
-
-        readonly AutoScrollState autoScrollState = new AutoScrollState();
-
-        Action<float> onValueChanged;
-        Action<int> onSelectionChanged;
-
-        Vector2 beginDragPointerPosition;
-        float scrollStartPosition;
-        float prevPosition;
-        float currentPosition;
-
-        int totalCount;
-
-        bool hold;
-        bool scrolling;
-        bool dragging;
-        float velocity;
-
-        [Serializable]
-        public class Snap
-        {
-            public bool Enable; //スナップを有効にすると, 慣性でスクロールが止まる直前に最寄りのセルへ移動します.
-            public float VelocityThreshold;
-            public float Duration;
-            public Ease Easing;
-        }
-
-        static readonly EasingFunction DefaultEasingFunction = Easing.Get(Ease.OutCubic);
-
-        public class AutoScrollState
-        {
-            public bool Enable;
-            public bool Elastic;
-            public float Duration;
-            public EasingFunction EasingFunction;
-            public float StartTime;
-            public float EndPosition;
-
-            public Action OnComplete;
-
-            public void Reset()
-            {
-                Enable = false;
-                Elastic = false;
-                Duration = 0f;
-                StartTime = 0f;
-                EasingFunction = DefaultEasingFunction;
-                EndPosition = 0f;
-                OnComplete = null;
-            }
-
-            public void Complete()
-            {
-                OnComplete?.Invoke();
-                Reset();
             }
         }
 
         protected override void Start()
         {
             base.Start();
+            if (!scrollbar) return;
+            scrollbar.onValueChanged.AddListener(x => UpdatePosition(x * (_totalCount - 1f), false));
+        }
 
-            if (scrollbar)
+        protected void Update()
+        {
+            var deltaTime = Time.unscaledDeltaTime;
+            var offset = CalculateOffset(_currentPosition);
+
+            if (_autoScrollState.enable)
             {
-                scrollbar.onValueChanged.AddListener(x => UpdatePosition(x * (totalCount - 1f), false));
+                var position = 0f;
+
+                if (_autoScrollState.elastic)
+                {
+                    position = Mathf.SmoothDamp(_currentPosition, _currentPosition + offset, ref _velocity,
+                        elasticity, Mathf.Infinity, deltaTime);
+
+                    if (Mathf.Abs(_velocity) < 0.01f)
+                    {
+                        position = Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1);
+                        _velocity = 0f;
+                        _autoScrollState.Complete();
+                    }
+                }
+                else
+                {
+                    var alpha = Mathf.Clamp01((Time.unscaledTime - _autoScrollState.StartTime) /
+                                              Mathf.Max(_autoScrollState.duration, float.Epsilon));
+                    position = Mathf.LerpUnclamped(_scrollStartPosition, _autoScrollState.EndPosition,
+                        _autoScrollState.EasingFunction(alpha));
+
+                    if (Mathf.Approximately(alpha, 1f))
+                    {
+                        _autoScrollState.Complete();
+                    }
+                }
+
+                UpdatePosition(position);
             }
+            else if (!(_dragging || _scrolling) &&
+                     (!Mathf.Approximately(offset, 0f) || !Mathf.Approximately(_velocity, 0f)))
+            {
+                var position = _currentPosition;
+
+                if (movementType == MovementType.Elastic && !Mathf.Approximately(offset, 0f))
+                {
+                    _autoScrollState.Reset();
+                    _autoScrollState.enable = true;
+                    _autoScrollState.elastic = true;
+
+                    UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1));
+                }
+                else if (inertia)
+                {
+                    _velocity *= Mathf.Pow(decelerationRate, deltaTime);
+
+                    if (Mathf.Abs(_velocity) < 0.001f)
+                    {
+                        _velocity = 0f;
+                    }
+
+                    position += _velocity * deltaTime;
+
+                    if (snap.Enable && Mathf.Abs(_velocity) < snap.VelocityThreshold)
+                    {
+                        ScrollTo(Mathf.RoundToInt(_currentPosition), snap.Duration, snap.Easing);
+                    }
+                }
+                else
+                {
+                    _velocity = 0f;
+                }
+
+                if (!Mathf.Approximately(_velocity, 0f))
+                {
+                    if (movementType == MovementType.Clamped)
+                    {
+                        offset = CalculateOffset(position);
+                        position += offset;
+
+                        if (Mathf.Approximately(position, 0f) || Mathf.Approximately(position, _totalCount - 1f))
+                        {
+                            _velocity = 0f;
+                            UpdateSelection(Mathf.RoundToInt(position));
+                        }
+                    }
+
+                    UpdatePosition(position);
+                }
+            }
+
+            if (!_autoScrollState.enable && (_dragging || _scrolling) && inertia)
+            {
+                var newVelocity = (_currentPosition - _prevPosition) / deltaTime;
+                _velocity = Mathf.Lerp(_velocity, newVelocity, deltaTime * 10f);
+            }
+
+            _prevPosition = _currentPosition;
+            _scrolling = false;
         }
 
         /// <summary>
         /// スクロール位置が変化したときのコールバックを設定します.
         /// </summary>
         /// <param name="callback">スクロール位置が変化したときのコールバック.</param>
-        public void OnValueChanged(Action<float> callback) => onValueChanged = callback;
+        public void OnValueChanged(Action<float> callback) => _onValueChanged = callback;
 
         /// <summary>
         /// 選択位置が変化したときのコールバックを設定します.
         /// </summary>
         /// <param name="callback">選択位置が変化したときのコールバック.</param>
-        public void OnSelectionChanged(Action<int> callback) => onSelectionChanged = callback;
+        public void OnSelectionChanged(Action<int> callback) => _onSelectionChanged = callback;
 
         /// <summary>
         /// アイテムの総数を設定します.
@@ -160,7 +196,7 @@ namespace FancyScrollView
         /// <paramref name="totalCount"/> を元に最大スクロール位置を計算します.
         /// </remarks>
         /// <param name="totalCount">アイテムの総数.</param>
-        public void SetTotalCount(int totalCount) => this.totalCount = totalCount;
+        public void SetTotalCount(int totalCount) => this._totalCount = totalCount;
 
         /// <summary>
         /// 指定した位置まで移動します.
@@ -192,23 +228,23 @@ namespace FancyScrollView
         {
             if (duration <= 0f)
             {
-                Position = CircularPosition(position, totalCount);
+                Position = CircularPosition(position, _totalCount);
                 onComplete?.Invoke();
                 return;
             }
 
-            autoScrollState.Reset();
-            autoScrollState.Enable = true;
-            autoScrollState.Duration = duration;
-            autoScrollState.EasingFunction = easingFunction ?? DefaultEasingFunction;
-            autoScrollState.StartTime = Time.unscaledTime;
-            autoScrollState.EndPosition = currentPosition + CalculateMovementAmount(currentPosition, position);
-            autoScrollState.OnComplete = onComplete;
+            _autoScrollState.Reset();
+            _autoScrollState.Enable = true;
+            _autoScrollState.Duration = duration;
+            _autoScrollState.EasingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
+            _autoScrollState.StartTime = Time.unscaledTime;
+            _autoScrollState.EndPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
+            _autoScrollState.OnComplete = onComplete;
 
-            velocity = 0f;
-            scrollStartPosition = currentPosition;
+            _velocity = 0f;
+            _scrollStartPosition = _currentPosition;
 
-            UpdateSelection(Mathf.RoundToInt(CircularPosition(autoScrollState.EndPosition, totalCount)));
+            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.EndPosition, _totalCount)));
         }
 
         /// <summary>
@@ -217,7 +253,7 @@ namespace FancyScrollView
         /// <param name="index">アイテムのインデックス.</param>
         public void JumpTo(int index)
         {
-            if (index < 0 || index > totalCount - 1)
+            if (index < 0 || index > _totalCount - 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -253,9 +289,9 @@ namespace FancyScrollView
                 return;
             }
 
-            hold = true;
-            velocity = 0f;
-            autoScrollState.Reset();
+            _hold = true;
+            _velocity = 0f;
+            _autoScrollState.Reset();
         }
 
         /// <inheritdoc/>
@@ -266,13 +302,13 @@ namespace FancyScrollView
                 return;
             }
 
-            if (hold && snap.Enable)
+            if (_hold && snap.Enable)
             {
-                UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(currentPosition), 0, totalCount - 1));
-                ScrollTo(Mathf.RoundToInt(currentPosition), snap.Duration, snap.Easing);
+                UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(_currentPosition), 0, _totalCount - 1));
+                ScrollTo(Mathf.RoundToInt(_currentPosition), snap.Duration, snap.Easing);
             }
 
-            hold = false;
+            _hold = false;
         }
 
         /// <inheritdoc/>
@@ -297,18 +333,18 @@ namespace FancyScrollView
 
             if (eventData.IsScrolling())
             {
-                scrolling = true;
+                _scrolling = true;
             }
 
-            var position = currentPosition + scrollDelta / ViewportSize * scrollSensitivity;
+            var position = _currentPosition + scrollDelta / ViewportSize * scrollSensitivity;
             if (movementType == MovementType.Clamped)
             {
                 position += CalculateOffset(position);
             }
 
-            if (autoScrollState.Enable)
+            if (_autoScrollState.Enable)
             {
-                autoScrollState.Reset();
+                _autoScrollState.Reset();
             }
 
             UpdatePosition(position);
@@ -322,22 +358,22 @@ namespace FancyScrollView
                 return;
             }
 
-            hold = false;
+            _hold = false;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 viewport,
                 eventData.position,
                 eventData.pressEventCamera,
-                out beginDragPointerPosition);
+                out _beginDragPointerPosition);
 
-            scrollStartPosition = currentPosition;
-            dragging = true;
-            autoScrollState.Reset();
+            _scrollStartPosition = _currentPosition;
+            _dragging = true;
+            _autoScrollState.Reset();
         }
 
         /// <inheritdoc/>
         void IDragHandler.OnDrag(PointerEventData eventData)
         {
-            if (!draggable || eventData.button != PointerEventData.InputButton.Left || !dragging)
+            if (!draggable || eventData.button != PointerEventData.InputButton.Left || !_dragging)
             {
                 return;
             }
@@ -351,11 +387,11 @@ namespace FancyScrollView
                 return;
             }
 
-            var pointerDelta = dragPointerPosition - beginDragPointerPosition;
+            var pointerDelta = dragPointerPosition - _beginDragPointerPosition;
             var position = (scrollDirection == ScrollDirection.Horizontal ? -pointerDelta.x : pointerDelta.y)
                            / ViewportSize
                            * scrollSensitivity
-                           + scrollStartPosition;
+                           + _scrollStartPosition;
 
             var offset = CalculateOffset(position);
             position += offset;
@@ -379,7 +415,7 @@ namespace FancyScrollView
                 return;
             }
 
-            dragging = false;
+            _dragging = false;
         }
 
         float CalculateOffset(float position)
@@ -394,9 +430,9 @@ namespace FancyScrollView
                 return -position;
             }
 
-            if (position > totalCount - 1)
+            if (position > _totalCount - 1)
             {
-                return totalCount - 1 - position;
+                return _totalCount - 1 - position;
             }
 
             return 0f;
@@ -404,129 +440,31 @@ namespace FancyScrollView
 
         void UpdatePosition(float position, bool updateScrollbar = true)
         {
-            onValueChanged?.Invoke(currentPosition = position);
+            _onValueChanged?.Invoke(_currentPosition = position);
 
             if (scrollbar && updateScrollbar)
             {
-                scrollbar.value = Mathf.Clamp01(position / Mathf.Max(totalCount - 1f, 1e-4f));
+                scrollbar.value = Mathf.Clamp01(position / Mathf.Max(_totalCount - 1f, 1e-4f));
             }
         }
 
-        void UpdateSelection(int index) => onSelectionChanged?.Invoke(index);
+        void UpdateSelection(int index) => _onSelectionChanged?.Invoke(index);
 
         float RubberDelta(float overStretching, float viewSize) =>
             (1 - 1 / (Mathf.Abs(overStretching) * 0.55f / viewSize + 1)) * viewSize * Mathf.Sign(overStretching);
-
-        void Update()
-        {
-            var deltaTime = Time.unscaledDeltaTime;
-            var offset = CalculateOffset(currentPosition);
-
-            if (autoScrollState.Enable)
-            {
-                var position = 0f;
-
-                if (autoScrollState.Elastic)
-                {
-                    position = Mathf.SmoothDamp(currentPosition, currentPosition + offset, ref velocity,
-                        elasticity, Mathf.Infinity, deltaTime);
-
-                    if (Mathf.Abs(velocity) < 0.01f)
-                    {
-                        position = Mathf.Clamp(Mathf.RoundToInt(position), 0, totalCount - 1);
-                        velocity = 0f;
-                        autoScrollState.Complete();
-                    }
-                }
-                else
-                {
-                    var alpha = Mathf.Clamp01((Time.unscaledTime - autoScrollState.StartTime) /
-                                              Mathf.Max(autoScrollState.Duration, float.Epsilon));
-                    position = Mathf.LerpUnclamped(scrollStartPosition, autoScrollState.EndPosition,
-                        autoScrollState.EasingFunction(alpha));
-
-                    if (Mathf.Approximately(alpha, 1f))
-                    {
-                        autoScrollState.Complete();
-                    }
-                }
-
-                UpdatePosition(position);
-            }
-            else if (!(dragging || scrolling) &&
-                     (!Mathf.Approximately(offset, 0f) || !Mathf.Approximately(velocity, 0f)))
-            {
-                var position = currentPosition;
-
-                if (movementType == MovementType.Elastic && !Mathf.Approximately(offset, 0f))
-                {
-                    autoScrollState.Reset();
-                    autoScrollState.Enable = true;
-                    autoScrollState.Elastic = true;
-
-                    UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(position), 0, totalCount - 1));
-                }
-                else if (inertia)
-                {
-                    velocity *= Mathf.Pow(decelerationRate, deltaTime);
-
-                    if (Mathf.Abs(velocity) < 0.001f)
-                    {
-                        velocity = 0f;
-                    }
-
-                    position += velocity * deltaTime;
-
-                    if (snap.Enable && Mathf.Abs(velocity) < snap.VelocityThreshold)
-                    {
-                        ScrollTo(Mathf.RoundToInt(currentPosition), snap.Duration, snap.Easing);
-                    }
-                }
-                else
-                {
-                    velocity = 0f;
-                }
-
-                if (!Mathf.Approximately(velocity, 0f))
-                {
-                    if (movementType == MovementType.Clamped)
-                    {
-                        offset = CalculateOffset(position);
-                        position += offset;
-
-                        if (Mathf.Approximately(position, 0f) || Mathf.Approximately(position, totalCount - 1f))
-                        {
-                            velocity = 0f;
-                            UpdateSelection(Mathf.RoundToInt(position));
-                        }
-                    }
-
-                    UpdatePosition(position);
-                }
-            }
-
-            if (!autoScrollState.Enable && (dragging || scrolling) && inertia)
-            {
-                var newVelocity = (currentPosition - prevPosition) / deltaTime;
-                velocity = Mathf.Lerp(velocity, newVelocity, deltaTime * 10f);
-            }
-
-            prevPosition = currentPosition;
-            scrolling = false;
-        }
 
         float CalculateMovementAmount(float sourcePosition, float destPosition)
         {
             if (movementType != MovementType.Unrestricted)
             {
-                return Mathf.Clamp(destPosition, 0, totalCount - 1) - sourcePosition;
+                return Mathf.Clamp(destPosition, 0, _totalCount - 1) - sourcePosition;
             }
 
-            var amount = CircularPosition(destPosition, totalCount) - CircularPosition(sourcePosition, totalCount);
+            var amount = CircularPosition(destPosition, _totalCount) - CircularPosition(sourcePosition, _totalCount);
 
-            if (Mathf.Abs(amount) > totalCount * 0.5f)
+            if (Mathf.Abs(amount) > _totalCount * 0.5f)
             {
-                amount = Mathf.Sign(-amount) * (totalCount - Mathf.Abs(amount));
+                amount = Mathf.Sign(-amount) * (_totalCount - Mathf.Abs(amount));
             }
 
             return amount;
