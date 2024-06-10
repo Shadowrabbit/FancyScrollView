@@ -14,28 +14,28 @@ namespace FancyScrollView
 {
     public class AutoScrollState
     {
-        public bool Enable;
-        public bool Elastic;
-        public float Duration;
-        public EasingFunction EasingFunction;
-        public float StartTime;
-        public float EndPosition;
-        public Action OnComplete;
+        public bool enable;
+        public bool elastic;
+        public float duration;
+        public EasingFunction easingFunction;
+        public float startTime;
+        public float endPosition;
+        public Action onComplete;
 
         public void Reset()
         {
-            Enable = false;
-            Elastic = false;
-            Duration = 0f;
-            StartTime = 0f;
-            EasingFunction = Easing.Get(Ease.OutCubic);
-            EndPosition = 0f;
-            OnComplete = null;
+            enable = false;
+            elastic = false;
+            duration = 0f;
+            startTime = 0f;
+            easingFunction = Easing.Get(Ease.OutCubic);
+            endPosition = 0f;
+            onComplete = null;
         }
 
         public void Complete()
         {
-            OnComplete?.Invoke();
+            onComplete?.Invoke();
             Reset();
         }
     }

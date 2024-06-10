@@ -19,44 +19,20 @@ namespace FancyScrollView
     /// <typeparam name="TContext"><see cref="Context"/> の型.</typeparam>
     public abstract class FancyScrollView<TItemData, TContext> : MonoBehaviour where TContext : class, new()
     {
-        /// <summary>
-        /// セル同士の間隔.
-        /// </summary>
-        [SerializeField, Range(1e-2f, 1f)] protected float cellInterval = 0.2f;
+        [SerializeField, Range(1e-2f, 1f)] protected float
+            cellInterval = 0.2f; //セル同士の間隔. これはパーセンテージです。0.5の場合は、2つのセルの間隔がビューポートの長さまたは幅の0.5倍（レイアウトの方向に基づく）であることを示します。
 
-        /// <summary>
-        /// スクロール位置の基準.
-        /// </summary>
-        /// <remarks>
-        /// たとえば、 <c>0.5</c> を指定してスクロール位置が <c>0</c> の場合, 中央に最初のセルが配置されます.
-        /// </remarks>
-        [SerializeField, Range(0f, 1f)] protected float scrollOffset = 0.5f;
+        [SerializeField, Range(0f, 1f)]
+        protected float scrollOffset = 0.5f; // スクロール位置の基準. たとえば、0.5を指定してスクロール位置が0の場合, 中央に最初のセルが配置されます.
 
-        /// <summary>
-        /// セルを循環して配置させるどうか.
-        /// </summary>
-        /// <remarks>
-        /// <c>true</c> にすると最後のセルの後に最初のセル, 最初のセルの前に最後のセルが並ぶようになります.
-        /// 無限スクロールを実装する場合は <c>true</c> を指定します.
-        /// </remarks>
-        [SerializeField] protected bool loop = false;
+        [SerializeField] protected bool
+            loop; //セルを循環して配置させるどうか.にすると最後のセルの後に最初のセル, 最初のセルの前に最後のセルが並ぶようになります. 無限スクロールを実装する場合はtrueを指定します.
 
-        /// <summary>
-        /// セルの親要素となる <c>Transform</c>.
-        /// </summary>
-        [SerializeField] protected Transform cellContainer = default;
+        [SerializeField] protected Transform cellContainer; //セルの親要素となる <c>Transform</c>.
 
-        readonly IList<FancyCell<TItemData, TContext>> pool = new List<FancyCell<TItemData, TContext>>();
-
-        /// <summary>
-        /// 初期化済みかどうか.
-        /// </summary>
-        protected bool initialized;
-
-        /// <summary>
-        /// 現在のスクロール位置.
-        /// </summary>
-        protected float currentPosition;
+        private readonly IList<FancyCell<TItemData, TContext>> _pool = new List<FancyCell<TItemData, TContext>>();
+        private bool _initialized; //初期化済みかどうか.
+        protected float currentPosition; //現在のスクロール位置
 
         /// <summary>
         /// セルの Prefab.
@@ -66,7 +42,7 @@ namespace FancyScrollView
         /// <summary>
         /// アイテム一覧のデータ.
         /// </summary>
-        protected IList<TItemData> ItemsSource { get; set; } = new List<TItemData>();
+        protected IList<TItemData> ItemsSource { get; private set; } = new List<TItemData>();
 
         /// <summary>
         /// <typeparamref name="TContext"/> のインスタンス.
@@ -75,12 +51,11 @@ namespace FancyScrollView
         protected TContext Context { get; } = new TContext();
 
         /// <summary>
-        /// 初期化を行います.
+        /// 初期化を行います.最初にセルが生成される直前に呼び出されます.
         /// </summary>
-        /// <remarks>
-        /// 最初にセルが生成される直前に呼び出されます.
-        /// </remarks>
-        protected virtual void Initialize() { }
+        protected virtual void Initialize()
+        {
+        }
 
         /// <summary>
         /// 渡されたアイテム一覧に基づいて表示内容を更新します.
@@ -95,34 +70,33 @@ namespace FancyScrollView
         /// <summary>
         /// セルのレイアウトを強制的に更新します.
         /// </summary>
-        protected virtual void Relayout() => UpdatePosition(currentPosition, false);
+        protected virtual void Relayout() => UpdatePositionInternal(currentPosition, false);
 
         /// <summary>
         /// セルのレイアウトと表示内容を強制的に更新します.
         /// </summary>
-        protected virtual void Refresh() => UpdatePosition(currentPosition, true);
+        protected virtual void Refresh() => UpdatePositionInternal(currentPosition, true);
 
         /// <summary>
         /// スクロール位置を更新します.
         /// </summary>
         /// <param name="position">スクロール位置.</param>
-        protected virtual void UpdatePosition(float position) => UpdatePosition(position, false);
+        protected virtual void UpdatePosition(float position) => UpdatePositionInternal(position, false);
 
-        void UpdatePosition(float position, bool forceRefresh)
+        private void UpdatePositionInternal(float position, bool forceRefresh)
         {
-            if (!initialized)
+            if (!_initialized)
             {
                 Initialize();
-                initialized = true;
+                _initialized = true;
             }
 
             currentPosition = position;
-
+            
             var p = position - scrollOffset / cellInterval;
             var firstIndex = Mathf.CeilToInt(p);
             var firstPosition = (Mathf.Ceil(p) - p) * cellInterval;
-
-            if (firstPosition + pool.Count * cellInterval < 1f)
+            if (firstPosition + _pool.Count * cellInterval < 1f)
             {
                 ResizePool(firstPosition);
             }
@@ -130,12 +104,12 @@ namespace FancyScrollView
             UpdateCells(firstPosition, firstIndex, forceRefresh);
         }
 
-        void ResizePool(float firstPosition)
+        private void ResizePool(float firstPosition)
         {
             Debug.Assert(CellPrefab != null);
             Debug.Assert(cellContainer != null);
 
-            var addCount = Mathf.CeilToInt((1f - firstPosition) / cellInterval) - pool.Count;
+            var addCount = Mathf.CeilToInt((1f - firstPosition) / cellInterval) - _pool.Count;
             for (var i = 0; i < addCount; i++)
             {
                 var cell = Instantiate(CellPrefab, cellContainer).GetComponent<FancyCell<TItemData, TContext>>();
@@ -149,17 +123,17 @@ namespace FancyScrollView
                 cell.SetContext(Context);
                 cell.Initialize();
                 cell.SetVisible(false);
-                pool.Add(cell);
+                _pool.Add(cell);
             }
         }
 
         void UpdateCells(float firstPosition, int firstIndex, bool forceRefresh)
         {
-            for (var i = 0; i < pool.Count; i++)
+            for (var i = 0; i < _pool.Count; i++)
             {
                 var index = firstIndex + i;
                 var position = firstPosition + i * cellInterval;
-                var cell = pool[CircularIndex(index, pool.Count)];
+                var cell = _pool[CircularIndex(index, _pool.Count)];
 
                 if (loop)
                 {
@@ -208,7 +182,9 @@ namespace FancyScrollView
     /// <summary>
     /// <see cref="FancyScrollView{TItemData}"/> のコンテキストクラス.
     /// </summary>
-    public sealed class NullContext { }
+    public sealed class NullContext
+    {
+    }
 
     /// <summary>
     /// スクロールビューを実装するための抽象基底クラス.
@@ -216,5 +192,7 @@ namespace FancyScrollView
     /// </summary>
     /// <typeparam name="TItemData"></typeparam>
     /// <seealso cref="FancyScrollView{TItemData, TContext}"/>
-    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, NullContext> { }
+    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, NullContext>
+    {
+    }
 }

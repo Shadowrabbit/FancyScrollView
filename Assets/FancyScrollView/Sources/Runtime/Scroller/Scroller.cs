@@ -86,7 +86,7 @@ namespace FancyScrollView
 
             if (_autoScrollState.enable)
             {
-                var position = 0f;
+                float position;
 
                 if (_autoScrollState.elastic)
                 {
@@ -102,10 +102,10 @@ namespace FancyScrollView
                 }
                 else
                 {
-                    var alpha = Mathf.Clamp01((Time.unscaledTime - _autoScrollState.StartTime) /
+                    var alpha = Mathf.Clamp01((Time.unscaledTime - _autoScrollState.startTime) /
                                               Mathf.Max(_autoScrollState.duration, float.Epsilon));
-                    position = Mathf.LerpUnclamped(_scrollStartPosition, _autoScrollState.EndPosition,
-                        _autoScrollState.EasingFunction(alpha));
+                    position = Mathf.LerpUnclamped(_scrollStartPosition, _autoScrollState.endPosition,
+                        _autoScrollState.easingFunction(alpha));
 
                     if (Mathf.Approximately(alpha, 1f))
                     {
@@ -196,7 +196,7 @@ namespace FancyScrollView
         /// <paramref name="totalCount"/> を元に最大スクロール位置を計算します.
         /// </remarks>
         /// <param name="totalCount">アイテムの総数.</param>
-        public void SetTotalCount(int totalCount) => this._totalCount = totalCount;
+        public void SetTotalCount(int totalCount) => _totalCount = totalCount;
 
         /// <summary>
         /// 指定した位置まで移動します.
@@ -234,17 +234,17 @@ namespace FancyScrollView
             }
 
             _autoScrollState.Reset();
-            _autoScrollState.Enable = true;
-            _autoScrollState.Duration = duration;
-            _autoScrollState.EasingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
-            _autoScrollState.StartTime = Time.unscaledTime;
-            _autoScrollState.EndPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
-            _autoScrollState.OnComplete = onComplete;
+            _autoScrollState.enable = true;
+            _autoScrollState.duration = duration;
+            _autoScrollState.easingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
+            _autoScrollState.startTime = Time.unscaledTime;
+            _autoScrollState.endPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
+            _autoScrollState.onComplete = onComplete;
 
             _velocity = 0f;
             _scrollStartPosition = _currentPosition;
 
-            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.EndPosition, _totalCount)));
+            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.endPosition, _totalCount)));
         }
 
         /// <summary>
@@ -342,7 +342,7 @@ namespace FancyScrollView
                 position += CalculateOffset(position);
             }
 
-            if (_autoScrollState.Enable)
+            if (_autoScrollState.enable)
             {
                 _autoScrollState.Reset();
             }
