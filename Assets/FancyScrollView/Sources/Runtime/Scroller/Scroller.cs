@@ -177,110 +177,6 @@ namespace FancyScrollView
             _scrolling = false;
         }
 
-        /// <summary>
-        /// スクロール位置が変化したときのコールバックを設定します.
-        /// </summary>
-        /// <param name="callback">スクロール位置が変化したときのコールバック.</param>
-        public void OnValueChanged(Action<float> callback) => _onValueChanged = callback;
-
-        /// <summary>
-        /// 選択位置が変化したときのコールバックを設定します.
-        /// </summary>
-        /// <param name="callback">選択位置が変化したときのコールバック.</param>
-        public void OnSelectionChanged(Action<int> callback) => _onSelectionChanged = callback;
-
-        /// <summary>
-        /// アイテムの総数を設定します.
-        /// </summary>
-        /// <remarks>
-        /// <paramref name="totalCount"/> を元に最大スクロール位置を計算します.
-        /// </remarks>
-        /// <param name="totalCount">アイテムの総数.</param>
-        public void SetTotalCount(int totalCount) => _totalCount = totalCount;
-
-        /// <summary>
-        /// 指定した位置まで移動します.
-        /// </summary>
-        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
-        /// <param name="duration">移動にかける秒数.</param>
-        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        public void ScrollTo(float position, float duration, Action onComplete = null) =>
-            ScrollTo(position, duration, Ease.OutCubic, onComplete);
-
-        /// <summary>
-        /// 指定した位置まで移動します.
-        /// </summary>
-        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
-        /// <param name="duration">移動にかける秒数.</param>
-        /// <param name="easing">移動に使用するイージング.</param>
-        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        public void ScrollTo(float position, float duration, Ease easing, Action onComplete = null) =>
-            ScrollTo(position, duration, Easing.Get(easing), onComplete);
-
-        /// <summary>
-        /// 指定した位置まで移動します.
-        /// </summary>
-        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
-        /// <param name="duration">移動にかける秒数.</param>
-        /// <param name="easingFunction">移動に使用するイージング関数.</param>
-        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        public void ScrollTo(float position, float duration, EasingFunction easingFunction, Action onComplete = null)
-        {
-            if (duration <= 0f)
-            {
-                Position = CircularPosition(position, _totalCount);
-                onComplete?.Invoke();
-                return;
-            }
-
-            _autoScrollState.Reset();
-            _autoScrollState.enable = true;
-            _autoScrollState.duration = duration;
-            _autoScrollState.easingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
-            _autoScrollState.startTime = Time.unscaledTime;
-            _autoScrollState.endPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
-            _autoScrollState.onComplete = onComplete;
-
-            _velocity = 0f;
-            _scrollStartPosition = _currentPosition;
-
-            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.endPosition, _totalCount)));
-        }
-
-        /// <summary>
-        /// 指定したインデックスの位置までジャンプします.
-        /// </summary>
-        /// <param name="index">アイテムのインデックス.</param>
-        public void JumpTo(int index)
-        {
-            if (index < 0 || index > _totalCount - 1)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            UpdateSelection(index);
-            Position = index;
-        }
-
-        /// <summary>
-        /// <paramref name="sourceIndex"/> から <paramref name="destIndex"/> に移動する際の移動方向を返します.
-        /// スクロール範囲が無制限に設定されている場合は, 最短距離の移動方向を返します.
-        /// </summary>
-        /// <param name="sourceIndex">移動元のインデックス.</param>
-        /// <param name="destIndex">移動先のインデックス.</param>
-        /// <returns></returns>
-        public MovementDirection GetMovementDirection(int sourceIndex, int destIndex)
-        {
-            var movementAmount = CalculateMovementAmount(sourceIndex, destIndex);
-            return scrollDirection == ScrollDirection.Horizontal
-                ? movementAmount > 0
-                    ? MovementDirection.Left
-                    : MovementDirection.Right
-                : movementAmount > 0
-                    ? MovementDirection.Up
-                    : MovementDirection.Down;
-        }
-
         /// <inheritdoc/>
         void IPointerDownHandler.OnPointerDown(PointerEventData eventData)
         {
@@ -418,7 +314,81 @@ namespace FancyScrollView
             _dragging = false;
         }
 
-        float CalculateOffset(float position)
+        /// <summary>
+        /// スクロール位置が変化したときのコールバックを設定します.
+        /// </summary>
+        /// <param name="callback">スクロール位置が変化したときのコールバック.</param>
+        public void OnValueChanged(Action<float> callback) => _onValueChanged = callback;
+
+        /// <summary>
+        /// 選択位置が変化したときのコールバックを設定します.
+        /// </summary>
+        /// <param name="callback">選択位置が変化したときのコールバック.</param>
+        public void OnSelectionChanged(Action<int> callback) => _onSelectionChanged = callback;
+
+        /// <summary>
+        /// アイテムの総数を設定します.
+        /// </summary>
+        /// <remarks>
+        /// <paramref name="totalCount"/> を元に最大スクロール位置を計算します.
+        /// </remarks>
+        /// <param name="totalCount">アイテムの総数.</param>
+        public void SetTotalCount(int totalCount) => _totalCount = totalCount;
+
+        /// <summary>
+        /// 指定した位置まで移動します.
+        /// </summary>
+        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
+        /// <param name="duration">移動にかける秒数.</param>
+        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
+        public void ScrollTo(float position, float duration, Action onComplete = null) =>
+            ScrollTo(position, duration, Ease.OutCubic, onComplete);
+
+        /// <summary>
+        /// 指定した位置まで移動します.
+        /// </summary>
+        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
+        /// <param name="duration">移動にかける秒数.</param>
+        /// <param name="easing">移動に使用するイージング.</param>
+        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
+        public void ScrollTo(float position, float duration, Ease easing, Action onComplete = null) =>
+            ScrollTo(position, duration, Easing.Get(easing), onComplete);
+
+        /// <summary>
+        /// 指定したインデックスの位置までジャンプします.
+        /// </summary>
+        /// <param name="index">アイテムのインデックス.</param>
+        public void JumpTo(int index)
+        {
+            if (index < 0 || index > _totalCount - 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            UpdateSelection(index);
+            Position = index;
+        }
+
+        /// <summary>
+        /// <paramref name="sourceIndex"/> から <paramref name="destIndex"/> に移動する際の移動方向を返します.
+        /// スクロール範囲が無制限に設定されている場合は, 最短距離の移動方向を返します.
+        /// </summary>
+        /// <param name="sourceIndex">移動元のインデックス.</param>
+        /// <param name="destIndex">移動先のインデックス.</param>
+        /// <returns></returns>
+        public MovementDirection GetMovementDirection(int sourceIndex, int destIndex)
+        {
+            var movementAmount = CalculateMovementAmount(sourceIndex, destIndex);
+            return scrollDirection == ScrollDirection.Horizontal
+                ? movementAmount > 0
+                    ? MovementDirection.Left
+                    : MovementDirection.Right
+                : movementAmount > 0
+                    ? MovementDirection.Up
+                    : MovementDirection.Down;
+        }
+
+        private float CalculateOffset(float position)
         {
             if (movementType == MovementType.Unrestricted)
             {
@@ -438,7 +408,7 @@ namespace FancyScrollView
             return 0f;
         }
 
-        void UpdatePosition(float position, bool updateScrollbar = true)
+        private void UpdatePosition(float position, bool updateScrollbar = true)
         {
             _onValueChanged?.Invoke(_currentPosition = position);
 
@@ -448,12 +418,12 @@ namespace FancyScrollView
             }
         }
 
-        void UpdateSelection(int index) => _onSelectionChanged?.Invoke(index);
+        private void UpdateSelection(int index) => _onSelectionChanged?.Invoke(index);
 
-        float RubberDelta(float overStretching, float viewSize) =>
+        private static float RubberDelta(float overStretching, float viewSize) =>
             (1 - 1 / (Mathf.Abs(overStretching) * 0.55f / viewSize + 1)) * viewSize * Mathf.Sign(overStretching);
 
-        float CalculateMovementAmount(float sourcePosition, float destPosition)
+        private float CalculateMovementAmount(float sourcePosition, float destPosition)
         {
             if (movementType != MovementType.Unrestricted)
             {
@@ -470,6 +440,37 @@ namespace FancyScrollView
             return amount;
         }
 
-        float CircularPosition(float p, int size) => size < 1 ? 0 : p < 0 ? size - 1 + (p + 1) % size : p % size;
+        private static float CircularPosition(float p, int size) =>
+            size < 1 ? 0 : p < 0 ? size - 1 + (p + 1) % size : p % size;
+
+        /// <summary>
+        /// 指定した位置まで移動します.
+        /// </summary>
+        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
+        /// <param name="duration">移動にかける秒数.</param>
+        /// <param name="easingFunction">移動に使用するイージング関数.</param>
+        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
+        private void ScrollTo(float position, float duration, EasingFunction easingFunction, Action onComplete = null)
+        {
+            if (duration <= 0f)
+            {
+                Position = CircularPosition(position, _totalCount);
+                onComplete?.Invoke();
+                return;
+            }
+
+            _autoScrollState.Reset();
+            _autoScrollState.enable = true;
+            _autoScrollState.duration = duration;
+            _autoScrollState.easingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
+            _autoScrollState.startTime = Time.unscaledTime;
+            _autoScrollState.endPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
+            _autoScrollState.onComplete = onComplete;
+
+            _velocity = 0f;
+            _scrollStartPosition = _currentPosition;
+
+            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.endPosition, _totalCount)));
+        }
     }
 }
