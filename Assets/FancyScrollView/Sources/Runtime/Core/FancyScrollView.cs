@@ -20,7 +20,7 @@ namespace FancyScrollView
     public abstract class FancyScrollView<TItemData, TContext> : MonoBehaviour where TContext : class, new()
     {
         [SerializeField, Range(1e-2f, 1f)] protected float
-            cellInterval = 0.2f; //セル同士の間隔. これはパーセンテージです。0.5の場合は、2つのセルの間隔がビューポートの長さまたは幅の0.5倍（レイアウトの方向に基づく）であることを示します。
+            cellInterval = 0.2f; //セル同士の間隔. これはパーセンテージです。0.5の場合は、2つのセルの間隔がセルアニメーションの最大変位の0.5倍（レイアウトの方向に基づく）であることを示します。
 
         [SerializeField, Range(0f, 1f)]
         protected float scrollOffset = 0.5f; // スクロール位置の基準. たとえば、0.5を指定してスクロール位置が0の場合, 中央に最初のセルが配置されます.
@@ -32,7 +32,7 @@ namespace FancyScrollView
 
         private readonly IList<FancyCell<TItemData, TContext>> _pool = new List<FancyCell<TItemData, TContext>>();
         private bool _initialized; //初期化済みかどうか.
-        protected float currentPosition; //現在のスクロール位置
+        protected float currentPosition; //現在のスクロール位置 
 
         /// <summary>
         /// セルの Prefab.
@@ -92,8 +92,11 @@ namespace FancyScrollView
             }
 
             currentPosition = position;
-            
-            var p = position - scrollOffset / cellInterval;
+            //オフセットがカバーするセルの数
+            var cellCountCoverdByOffset = scrollOffset / cellInterval;
+            //最初の見えるセルの位置
+            var p = position - cellCountCoverdByOffset;
+            //最初の見えるセルのインデックス
             var firstIndex = Mathf.CeilToInt(p);
             var firstPosition = (Mathf.Ceil(p) - p) * cellInterval;
             if (firstPosition + _pool.Count * cellInterval < 1f)
@@ -127,14 +130,13 @@ namespace FancyScrollView
             }
         }
 
-        void UpdateCells(float firstPosition, int firstIndex, bool forceRefresh)
+        private void UpdateCells(float firstPosition, int firstIndex, bool forceRefresh)
         {
             for (var i = 0; i < _pool.Count; i++)
             {
                 var index = firstIndex + i;
                 var position = firstPosition + i * cellInterval;
                 var cell = _pool[CircularIndex(index, _pool.Count)];
-
                 if (loop)
                 {
                     index = CircularIndex(index, ItemsSource.Count);
@@ -157,7 +159,8 @@ namespace FancyScrollView
             }
         }
 
-        int CircularIndex(int i, int size) => size < 1 ? 0 : i < 0 ? size - 1 + (i + 1) % size : i % size;
+        private static int CircularIndex(int i, int size) =>
+            size < 1 ? 0 : i < 0 ? size - 1 + (i + 1) % size : i % size;
 
 #if UNITY_EDITOR
         bool cachedLoop;
