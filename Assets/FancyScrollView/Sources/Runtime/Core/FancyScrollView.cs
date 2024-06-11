@@ -110,7 +110,6 @@ namespace FancyScrollView
         {
             Debug.Assert(CellPrefab != null);
             Debug.Assert(cellContainer != null);
-
             var addCount = Mathf.CeilToInt((1f - firstPosition) / cellInterval) - _pool.Count;
             for (var i = 0; i < addCount; i++)
             {
