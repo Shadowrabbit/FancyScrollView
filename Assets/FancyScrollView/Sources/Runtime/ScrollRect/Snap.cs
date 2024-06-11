@@ -9,15 +9,16 @@
 
 using System;
 using EasingCore;
+using UnityEngine.Serialization;
 
 namespace FancyScrollView
 {
     [Serializable]
     public class Snap
     {
-        public bool Enable; //スナップを有効にすると, 慣性でスクロールが止まる直前に最寄りのセルへ移動します. trueならスナップし, falseならスナップしません.
-        public float VelocityThreshold;
-        public float Duration;
-        public Ease Easing;
+        public bool enable; //スナップを有効にすると, 慣性でスクロールが止まる直前に最寄りのセルへ移動します. trueならスナップし, falseならスナップしません.
+        public float velocityThreshold;
+        public float duration;
+        public Ease easing;
     }
 }

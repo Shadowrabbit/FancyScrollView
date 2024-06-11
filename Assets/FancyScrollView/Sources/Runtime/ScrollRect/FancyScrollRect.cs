@@ -20,7 +20,7 @@ namespace FancyScrollView
     {
         [SerializeField] public Snap snap = new Snap
         {
-            Enable = true, VelocityThreshold = 0.5f, Duration = 0.3f, Easing = Ease.InOutCubic
+            enable = true, velocityThreshold = 0.5f, duration = 0.3f, easing = Ease.InOutCubic
         };
 
         [SerializeField] public RectTransform viewport; //ビューポート
@@ -106,10 +106,10 @@ namespace FancyScrollView
                 return;
             }
 
-            if (_hold && snap.Enable)
+            if (_hold && snap.enable)
             {
                 UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(_curPosition), 0, _totalCount - 1));
-                ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
+                ScrollTo(Mathf.RoundToInt(_curPosition), snap.duration, snap.easing);
             }
 
             _hold = false;
@@ -493,9 +493,9 @@ namespace FancyScrollView
             }
 
             position += _velocity * deltaTime;
-            if (snap.Enable && Mathf.Abs(_velocity) < snap.VelocityThreshold)
+            if (snap.enable && Mathf.Abs(_velocity) < snap.velocityThreshold)
             {
-                ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
+                ScrollTo(Mathf.RoundToInt(_curPosition), snap.duration, snap.easing);
             }
 
             return position;
