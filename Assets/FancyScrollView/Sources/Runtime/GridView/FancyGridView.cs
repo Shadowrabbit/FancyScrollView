@@ -61,9 +61,7 @@ namespace FancyScrollView
         protected override void Initialize()
         {
             base.Initialize();
-
             Debug.Assert(startAxisCellCount > 0);
-
             Context.ScrollDirection = FancyScrollRect.scrollDirection;
             Context.GetGroupCount = () => startAxisCellCount;
             Context.GetStartAxisSpacing = () => startAxisSpacing;

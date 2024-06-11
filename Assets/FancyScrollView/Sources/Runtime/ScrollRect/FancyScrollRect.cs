@@ -15,9 +15,14 @@ namespace FancyScrollView
     /// <summary>
     /// スクロール位置の制御を行うコンポーネント.
     /// </summary>
-    public class FancyScrollRect : UIBehaviour, IPointerUpHandler, IPointerDownHandler, IBeginDragHandler, IEndDragHandler,
-        IDragHandler, IScrollHandler
+    public class FancyScrollRect : UIBehaviour, IPointerUpHandler, IPointerDownHandler, IBeginDragHandler,
+        IEndDragHandler, IDragHandler, IScrollHandler
     {
+        [SerializeField] public Snap snap = new Snap
+        {
+            Enable = true, VelocityThreshold = 0.5f, Duration = 0.3f, Easing = Ease.InOutCubic
+        };
+
         [SerializeField] public RectTransform viewport; //ビューポート
         [SerializeField] public ScrollDirection scrollDirection = ScrollDirection.Vertical; //スクロール方向
         [SerializeField] public MovementType movementType = MovementType.Elastic; //コンテンツがスクロール範囲を越えて移動するときに使用する挙動.
@@ -27,12 +32,6 @@ namespace FancyScrollView
         [SerializeField] public float decelerationRate = 0.03f; //スクロールの減速率.inertiaがtrue の場合のみ有効です.
         [SerializeField] public bool draggable = true; //Drag 入力を受付けるかどうか.
         [SerializeField] public Scrollbar scrollbar; //スクロールバーのオブジェクト
-
-        [SerializeField] public Snap snap = new Snap
-        {
-            Enable = true, VelocityThreshold = 0.5f, Duration = 0.3f, Easing = Ease.InOutCubic
-        };
-
         private readonly AutoScrollState _autoScrollState = new AutoScrollState();
         private Action<float> _onScrollValueChanged;
         private Action<int> _onSelectionChanged;
@@ -79,96 +78,11 @@ namespace FancyScrollView
         protected void Update()
         {
             var deltaTime = Time.unscaledDeltaTime;
-            var offset = CalculateOffset(_curPosition);
-            CalcPosition(offset, deltaTime);
+            CalcPosition(deltaTime);
             //慣性力の計算
             CalcInertia(deltaTime);
             _prevPosition = _curPosition;
             _scrolling = false;
-        }
-
-        private void CalcPosition(float offset, float deltaTime)
-        {
-            if (_autoScrollState.enable)
-            {
-                float position;
-                if (_autoScrollState.elastic)
-                {
-                    position = Mathf.SmoothDamp(_curPosition, _curPosition + offset, ref _velocity,
-                        elasticity, Mathf.Infinity, deltaTime);
-
-                    if (Mathf.Abs(_velocity) < 0.01f)
-                    {
-                        position = Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1);
-                        _velocity = 0f;
-                        _autoScrollState.Complete();
-                    }
-                }
-                else
-                {
-                    var alpha = Mathf.Clamp01((Time.unscaledTime - _autoScrollState.startTime) /
-                                              Mathf.Max(_autoScrollState.duration, float.Epsilon));
-                    position = Mathf.LerpUnclamped(_scrollStartPosition, _autoScrollState.endPosition,
-                        _autoScrollState.easingFunction(alpha));
-
-                    if (Mathf.Approximately(alpha, 1f))
-                    {
-                        _autoScrollState.Complete();
-                    }
-                }
-
-                UpdatePosition(position);
-            }
-            else if (!(_dragging || _scrolling) &&
-                     (!Mathf.Approximately(offset, 0f) || !Mathf.Approximately(_velocity, 0f)))
-            {
-                var position = _curPosition;
-                if (movementType == MovementType.Elastic && !Mathf.Approximately(offset, 0f))
-                {
-                    _autoScrollState.Reset();
-                    _autoScrollState.enable = true;
-                    _autoScrollState.elastic = true;
-
-                    UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1));
-                }
-                else if (inertia)
-                {
-                    _velocity *= Mathf.Pow(decelerationRate, deltaTime);
-
-                    if (Mathf.Abs(_velocity) < 0.001f)
-                    {
-                        _velocity = 0f;
-                    }
-
-                    position += _velocity * deltaTime;
-
-                    if (snap.Enable && Mathf.Abs(_velocity) < snap.VelocityThreshold)
-                    {
-                        ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
-                    }
-                }
-                else
-                {
-                    _velocity = 0f;
-                }
-
-                if (!Mathf.Approximately(_velocity, 0f))
-                {
-                    if (movementType == MovementType.Clamped)
-                    {
-                        offset = CalculateOffset(position);
-                        position += offset;
-
-                        if (Mathf.Approximately(position, 0f) || Mathf.Approximately(position, _totalCount - 1f))
-                        {
-                            _velocity = 0f;
-                            UpdateSelection(Mathf.RoundToInt(position));
-                        }
-                    }
-
-                    UpdatePosition(position);
-                }
-            }
         }
 
         /// <inheritdoc/>
@@ -475,6 +389,116 @@ namespace FancyScrollView
                 var newVelocity = (_curPosition - _prevPosition) / deltaTime;
                 _velocity = Mathf.Lerp(_velocity, newVelocity, deltaTime * 10f);
             }
+        }
+
+        private float CalcPositionAutoScroll()
+        {
+            var alpha = Mathf.Clamp01((Time.unscaledTime - _autoScrollState.startTime) /
+                                      Mathf.Max(_autoScrollState.duration, float.Epsilon));
+            var position = Mathf.LerpUnclamped(_scrollStartPosition, _autoScrollState.endPosition,
+                _autoScrollState.easingFunction(alpha));
+            if (Mathf.Approximately(alpha, 1f))
+            {
+                _autoScrollState.Complete();
+            }
+
+            return position;
+        }
+
+        private float CalcPositionAutoScrollElastic(float offset, float deltaTime)
+        {
+            var position = Mathf.SmoothDamp(_curPosition, _curPosition + offset, ref _velocity,
+                elasticity, Mathf.Infinity, deltaTime);
+            if (Mathf.Abs(_velocity) < 0.01f)
+            {
+                position = Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1);
+                _velocity = 0f;
+                _autoScrollState.Complete();
+            }
+
+            return position;
+        }
+
+        private float CalcClamped(float position)
+        {
+            if (movementType != MovementType.Clamped)
+            {
+                return position;
+            }
+
+            var offset = CalculateOffset(position);
+            position += offset;
+            if (!Mathf.Approximately(position, 0f) && !Mathf.Approximately(position, _totalCount - 1f))
+            {
+                return position;
+            }
+
+            _velocity = 0f;
+            UpdateSelection(Mathf.RoundToInt(position));
+            return position;
+        }
+
+        private void CalcPosition(float deltaTime)
+        {
+            var offset = CalculateOffset(_curPosition);
+            if (_autoScrollState.enable)
+            {
+                var pos = _autoScrollState.elastic
+                    ? CalcPositionAutoScrollElastic(offset, deltaTime)
+                    : CalcPositionAutoScroll();
+                UpdatePosition(pos);
+                return;
+            }
+
+            if (_dragging || _scrolling || (Mathf.Approximately(offset, 0f) && Mathf.Approximately(_velocity, 0f)))
+            {
+                return;
+            }
+
+            var position = CalcPostionScroll(offset, deltaTime);
+            if (Mathf.Approximately(_velocity, 0f))
+            {
+                return;
+            }
+
+            var fixPosition = CalcClamped(position);
+            UpdatePosition(fixPosition);
+        }
+
+        private float CalcPostionScroll(float offset, float deltaTime)
+        {
+            var position = _curPosition;
+            //elastic
+            if (movementType == MovementType.Elastic && !Mathf.Approximately(offset, 0f))
+            {
+                _autoScrollState.Reset();
+                _autoScrollState.enable = true;
+                _autoScrollState.elastic = true;
+                UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(position), 0, _totalCount - 1));
+                return position;
+            }
+
+            //common
+            if (!inertia)
+            {
+                _velocity = 0f;
+                return position;
+            }
+
+            //inertia
+            _velocity *= Mathf.Pow(decelerationRate, deltaTime);
+            if (Mathf.Abs(_velocity) < 0.001f)
+            {
+                _velocity = 0f;
+            }
+
+            position += _velocity * deltaTime;
+            if (snap.Enable && Mathf.Abs(_velocity) < snap.VelocityThreshold)
+            {
+                ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
+            }
+
+            return position;
         }
     }
 }
