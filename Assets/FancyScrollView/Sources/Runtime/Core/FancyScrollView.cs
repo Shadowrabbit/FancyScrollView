@@ -53,9 +53,7 @@ namespace FancyScrollView
         /// <summary>
         /// 初期化を行います.最初にセルが生成される直前に呼び出されます.
         /// </summary>
-        protected virtual void Initialize()
-        {
-        }
+        protected virtual void Initialize() { }
 
         /// <summary>
         /// 渡されたアイテム一覧に基づいて表示内容を更新します.
@@ -98,6 +96,7 @@ namespace FancyScrollView
             var p = position - cellCountCoverdByOffset;
             //最初の見えるセルのインデックス
             var firstIndex = Mathf.CeilToInt(p);
+            //画面外のその部分のオフセットの割合
             var firstPosition = (Mathf.Ceil(p) - p) * cellInterval;
             if (firstPosition + _pool.Count * cellInterval < 1f)
             {
@@ -183,19 +182,10 @@ namespace FancyScrollView
     }
 
     /// <summary>
-    /// <see cref="FancyScrollView{TItemData}"/> のコンテキストクラス.
-    /// </summary>
-    public sealed class NullContext
-    {
-    }
-
-    /// <summary>
     /// スクロールビューを実装するための抽象基底クラス.
     /// 無限スクロールおよびスナップに対応しています.
     /// </summary>
     /// <typeparam name="TItemData"></typeparam>
     /// <seealso cref="FancyScrollView{TItemData, TContext}"/>
-    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, NullContext>
-    {
-    }
+    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, NullContext> { }
 }
