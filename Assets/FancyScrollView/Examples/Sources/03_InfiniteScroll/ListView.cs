@@ -7,12 +7,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using EasingCore;
+using UnityEngine.Serialization;
 
 namespace FancyScrollView.Example03
 {
-    class ScrollView : FancyScrollView<ItemData, Context>
+    class ListView : FancyListView<ItemData, Context>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
         protected override GameObject CellPrefab => cellPrefab;
@@ -23,8 +25,8 @@ namespace FancyScrollView.Example03
 
             Context.OnCellClicked = SelectCell;
 
-            scroller.OnValueChanged(UpdatePosition);
-            scroller.OnSelectionChanged(UpdateSelection);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnSelectionChanged(UpdateSelection);
         }
 
         void UpdateSelection(int index)
@@ -41,7 +43,7 @@ namespace FancyScrollView.Example03
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
 
         public void SelectCell(int index)
@@ -52,7 +54,7 @@ namespace FancyScrollView.Example03
             }
 
             UpdateSelection(index);
-            scroller.ScrollTo(index, 0.35f, Ease.OutCubic);
+            fancyScrollRect.ScrollTo(index, 0.35f, Ease.OutCubic);
         }
     }
 }

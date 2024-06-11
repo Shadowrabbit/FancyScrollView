@@ -10,8 +10,8 @@ namespace FancyScrollView
 {
     public enum MovementType
     {
-        Unrestricted = ScrollRect.MovementType.Unrestricted,
-        Elastic = ScrollRect.MovementType.Elastic,
-        Clamped = ScrollRect.MovementType.Clamped
+        Unrestricted = ScrollRect.MovementType.Unrestricted, //無制限
+        Elastic = ScrollRect.MovementType.Elastic, //弾性
+        Clamped = ScrollRect.MovementType.Clamped //制限
     }
 }

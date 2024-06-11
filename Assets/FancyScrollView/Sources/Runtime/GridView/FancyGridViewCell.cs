@@ -15,7 +15,7 @@ namespace FancyScrollView
     /// </summary>
     /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
     /// <typeparam name="TContext"><see cref="FancyCell{TItemData, TContext}.Context"/> の型.</typeparam>
-    public abstract class FancyGridViewCell<TItemData, TContext> : FancyScrollRectCell<TItemData, TContext>
+    public abstract class FancyGridViewCell<TItemData, TContext> : FancyScrollCell<TItemData, TContext>
         where TContext : class, IFancyGridViewContext, new()
     {
         /// <inheritdoc/>

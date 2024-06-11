@@ -1,4 +1,4 @@
-﻿/*
+/*
  * FancyScrollView (https://github.com/setchi/FancyScrollView)
  * Copyright (c) 2020 setchi
  * Licensed under MIT (https://github.com/setchi/FancyScrollView/blob/master/LICENSE)
@@ -8,19 +8,19 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EasingCore;
+using UnityEngine.Serialization;
 
-namespace FancyScrollView.Example04
+namespace FancyScrollView.Example06
 {
-    class ScrollView : FancyScrollView<ItemData, Context>
+    class ListView : FancyListView<ItemData, Context>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
-        Action<int> onSelectionChanged;
+        Action<int, MovementDirection> onSelectionChanged;
 
         protected override GameObject CellPrefab => cellPrefab;
-
-        public int CellInstanceCount => Mathf.CeilToInt(1f / Mathf.Max(cellInterval, 1e-3f));
 
         protected override void Initialize()
         {
@@ -28,30 +28,32 @@ namespace FancyScrollView.Example04
 
             Context.OnCellClicked = SelectCell;
 
-            scroller.OnValueChanged(UpdatePosition);
-            scroller.OnSelectionChanged(UpdateSelection);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnSelectionChanged(UpdateSelection);
         }
 
-        public void UpdateSelection(int index)
+        void UpdateSelection(int index)
         {
             if (Context.SelectedIndex == index)
             {
                 return;
             }
 
+            var direction = fancyScrollRect.GetMovementDirection(Context.SelectedIndex, index);
+
             Context.SelectedIndex = index;
             Refresh();
 
-            onSelectionChanged?.Invoke(index);
+            onSelectionChanged?.Invoke(index, direction);
         }
 
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
 
-        public void OnSelectionChanged(Action<int> callback)
+        public void OnSelectionChanged(Action<int, MovementDirection> callback)
         {
             onSelectionChanged = callback;
         }
@@ -73,29 +75,7 @@ namespace FancyScrollView.Example04
                 return;
             }
 
-            UpdateSelection(index);
-            ScrollTo(index, 0.35f, Ease.OutCubic);
-        }
-
-        public void ScrollTo(float position, float duration, Ease easing, Action onComplete = null)
-        {
-            scroller.ScrollTo(position, duration, easing, onComplete);
-        }
-
-        public void JumpTo(int index)
-        {
-            scroller.JumpTo(index);
-        }
-
-        public Vector4[] GetCellState()
-        {
-            Context.UpdateCellState?.Invoke();
-            return Context.CellState;
-        }
-
-        public void SetCellState(int cellIndex, int dataIndex, float x, float y, float scale)
-        {
-            Context.SetCellState(cellIndex, dataIndex, x, y, scale);
+            fancyScrollRect.ScrollTo(index, 0.35f, Ease.OutCubic);
         }
     }
 }

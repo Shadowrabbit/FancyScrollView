@@ -9,12 +9,14 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using EasingCore;
+using UnityEngine.Serialization;
 
 namespace FancyScrollView.Example07
 {
     class Example07 : MonoBehaviour
     {
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
         [SerializeField] InputField paddingTopInputField = default;
         [SerializeField] InputField paddingBottomInputField = default;
         [SerializeField] InputField spacingInputField = default;
@@ -24,19 +26,19 @@ namespace FancyScrollView.Example07
 
         void Start()
         {
-            scrollView.OnCellClicked(index => selectIndexInputField.text = index.ToString());
+            listView.OnCellClicked(index => selectIndexInputField.text = index.ToString());
 
             paddingTopInputField.onValueChanged.AddListener(_ =>
-                TryParseValue(paddingTopInputField, 0, 999, value => scrollView.PaddingTop = value));
-            paddingTopInputField.text = scrollView.PaddingTop.ToString();
+                TryParseValue(paddingTopInputField, 0, 999, value => listView.PaddingTop = value));
+            paddingTopInputField.text = listView.PaddingTop.ToString();
 
             paddingBottomInputField.onValueChanged.AddListener(_ =>
-                TryParseValue(paddingBottomInputField, 0, 999, value => scrollView.PaddingBottom = value));
-            paddingBottomInputField.text = scrollView.PaddingBottom.ToString();
+                TryParseValue(paddingBottomInputField, 0, 999, value => listView.PaddingBottom = value));
+            paddingBottomInputField.text = listView.PaddingBottom.ToString();
 
             spacingInputField.onValueChanged.AddListener(_ =>
-                TryParseValue(spacingInputField, 0, 100, value => scrollView.Spacing = value));
-            spacingInputField.text = scrollView.Spacing.ToString();
+                TryParseValue(spacingInputField, 0, 100, value => listView.Spacing = value));
+            spacingInputField.text = listView.Spacing.ToString();
 
             alignmentDropdown.AddOptions(Enum.GetNames(typeof(Alignment)).Select(x => new Dropdown.OptionData(x)).ToList());
             alignmentDropdown.onValueChanged.AddListener(_ => SelectCell());
@@ -49,7 +51,7 @@ namespace FancyScrollView.Example07
                 TryParseValue(dataCountInputField, 1, 99999, GenerateCells));
             dataCountInputField.text = "20";
 
-            scrollView.JumpTo(10);
+            listView.JumpTo(10);
         }
 
         void TryParseValue(InputField inputField, int min, int max, Action<int> success)
@@ -70,13 +72,13 @@ namespace FancyScrollView.Example07
 
         void SelectCell()
         {
-            if (scrollView.DataCount == 0)
+            if (listView.DataCount == 0)
             {
                 return;
             }
 
-            TryParseValue(selectIndexInputField, 0, scrollView.DataCount - 1, index =>
-                scrollView.ScrollTo(index, 0.3f, Ease.InOutQuint, (Alignment)alignmentDropdown.value));
+            TryParseValue(selectIndexInputField, 0, listView.DataCount - 1, index =>
+                listView.ScrollTo(index, 0.3f, Ease.InOutQuint, (Alignment)alignmentDropdown.value));
         }
 
         void GenerateCells(int dataCount)
@@ -85,7 +87,7 @@ namespace FancyScrollView.Example07
                 .Select(i => new ItemData($"Cell {i}"))
                 .ToArray();
 
-            scrollView.UpdateData(items);
+            listView.UpdateData(items);
             SelectCell();
         }
     }

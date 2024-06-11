@@ -6,12 +6,14 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
-namespace FancyScrollView.Example01
+namespace FancyScrollView.Example09
 {
-    class ScrollView : FancyScrollView<ItemData>
+    class ListView : FancyListView<ItemData>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
         protected override GameObject CellPrefab => cellPrefab;
@@ -19,13 +21,13 @@ namespace FancyScrollView.Example01
         protected override void Initialize()
         {
             base.Initialize();
-            scroller.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
         }
 
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
     }
 }

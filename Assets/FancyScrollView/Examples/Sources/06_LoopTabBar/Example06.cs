@@ -6,13 +6,15 @@
 
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace FancyScrollView.Example06
 {
     class Example06 : MonoBehaviour
     {
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
         [SerializeField] Text selectedItemInfo = default;
         [SerializeField] Window[] windows = default;
 
@@ -20,14 +22,14 @@ namespace FancyScrollView.Example06
 
         void Start()
         {
-            scrollView.OnSelectionChanged(OnSelectionChanged);
+            listView.OnSelectionChanged(OnSelectionChanged);
 
             var items = Enumerable.Range(0, windows.Length)
                 .Select(i => new ItemData($"Tab {i}"))
                 .ToList();
 
-            scrollView.UpdateData(items);
-            scrollView.SelectCell(0);
+            listView.UpdateData(items);
+            listView.SelectCell(0);
         }
 
         void OnSelectionChanged(int index, MovementDirection direction)

@@ -12,12 +12,12 @@ namespace FancyScrollView
     /// <summary>
     /// スクロールビューを実装するための抽象基底クラス.
     /// 無限スクロールおよびスナップに対応しています.
-    /// <see cref="FancyScrollView{TItemData, TContext}.Context"/> が不要な場合は
-    /// 代わりに <see cref="FancyScrollView{TItemData}"/> を使用します.
+    /// <see cref="FancyListView{TItemData,TContext}.Context"/> が不要な場合は
+    /// 代わりに <see cref="FancyListView{TItemData}"/> を使用します.
     /// </summary>
     /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
     /// <typeparam name="TContext"><see cref="Context"/> の型.</typeparam>
-    public abstract class FancyScrollView<TItemData, TContext> : MonoBehaviour where TContext : class, new()
+    public abstract class FancyListView<TItemData, TContext> : MonoBehaviour where TContext : class, new()
     {
         [SerializeField, Range(1e-2f, 1f)] protected float
             cellInterval = 0.2f; //セル同士の間隔. これはパーセンテージです。0.5の場合は、2つのセルの間隔がセルアニメーションの最大変位の0.5倍（レイアウトの方向に基づく）であることを示します。
@@ -185,6 +185,6 @@ namespace FancyScrollView
     /// 無限スクロールおよびスナップに対応しています.
     /// </summary>
     /// <typeparam name="TItemData"></typeparam>
-    /// <seealso cref="FancyScrollView{TItemData, TContext}"/>
-    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, NullContext> { }
+    /// <seealso cref="FancyListView{TItemData,TContext}"/>
+    public abstract class FancyListView<TItemData> : FancyListView<TItemData, NullContext> { }
 }

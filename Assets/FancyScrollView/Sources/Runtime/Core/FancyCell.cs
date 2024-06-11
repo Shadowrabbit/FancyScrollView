@@ -9,7 +9,7 @@ using UnityEngine;
 namespace FancyScrollView
 {
     /// <summary>
-    /// <see cref="FancyScrollView{TItemData, TContext}"/> のセルを実装するための抽象基底クラス.
+    /// <see cref="FancyListView{TItemData,TContext}"/> のセルを実装するための抽象基底クラス.
     /// <see cref="FancyCell{TItemData, TContext}.Context"/> が不要な場合は
     /// 代わりに <see cref="FancyCell{TItemData}"/> を使用します.
     /// </summary>
@@ -28,7 +28,7 @@ namespace FancyScrollView
         public virtual bool IsVisible => gameObject.activeSelf;
 
         /// <summary>
-        /// <see cref="FancyScrollView{TItemData, TContext}.Context"/> の参照.
+        /// <see cref="FancyListView{TItemData,TContext}.Context"/> の参照.
         /// セルとスクロールビュー間で同じインスタンスが共有されます. 情報の受け渡しや状態の保持に使用します.
         /// </summary>
         protected TContext Context { get; private set; }
@@ -64,7 +64,7 @@ namespace FancyScrollView
     }
 
     /// <summary>
-    /// <see cref="FancyScrollView{TItemData}"/> のセルを実装するための抽象基底クラス.
+    /// <see cref="FancyListView{TItemData}"/> のセルを実装するための抽象基底クラス.
     /// </summary>
     /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
     /// <seealso cref="FancyCell{TItemData, TContext}"/>

@@ -15,7 +15,7 @@ namespace FancyScrollView
     /// <summary>
     /// スクロール位置の制御を行うコンポーネント.
     /// </summary>
-    public class Scroller : UIBehaviour, IPointerUpHandler, IPointerDownHandler, IBeginDragHandler, IEndDragHandler,
+    public class FancyScrollRect : UIBehaviour, IPointerUpHandler, IPointerDownHandler, IBeginDragHandler, IEndDragHandler,
         IDragHandler, IScrollHandler
     {
         [SerializeField] public RectTransform viewport; //ビューポート
@@ -30,19 +30,16 @@ namespace FancyScrollView
 
         [SerializeField] public Snap snap = new Snap
         {
-            Enable = true,
-            VelocityThreshold = 0.5f,
-            Duration = 0.3f,
-            Easing = Ease.InOutCubic
+            Enable = true, VelocityThreshold = 0.5f, Duration = 0.3f, Easing = Ease.InOutCubic
         };
 
         private readonly AutoScrollState _autoScrollState = new AutoScrollState();
-        private Action<float> _onValueChanged;
+        private Action<float> _onScrollValueChanged;
         private Action<int> _onSelectionChanged;
         private Vector2 _beginDragPointerPosition;
         private float _scrollStartPosition;
         private float _prevPosition;
-        private float _currentPosition;
+        private float _curPosition; //現在のスクロール位置.
         private int _totalCount;
         private bool _hold;
         private bool _scrolling;
@@ -60,9 +57,9 @@ namespace FancyScrollView
         /// 現在のスクロール位置.
         /// </summary>
         /// <value></value>
-        public float Position
+        public float CurPosition
         {
-            get => _currentPosition;
+            get => _curPosition;
             set
             {
                 _autoScrollState.Reset();
@@ -76,21 +73,28 @@ namespace FancyScrollView
         {
             base.Start();
             if (!scrollbar) return;
-            scrollbar.onValueChanged.AddListener(x => UpdatePosition(x * (_totalCount - 1f), false));
+            scrollbar.onValueChanged.AddListener(x => OnScrollValueChanged(x * (_totalCount - 1f)));
         }
 
         protected void Update()
         {
             var deltaTime = Time.unscaledDeltaTime;
-            var offset = CalculateOffset(_currentPosition);
+            var offset = CalculateOffset(_curPosition);
+            CalcPosition(offset, deltaTime);
+            //慣性力の計算
+            CalcInertia(deltaTime);
+            _prevPosition = _curPosition;
+            _scrolling = false;
+        }
 
+        private void CalcPosition(float offset, float deltaTime)
+        {
             if (_autoScrollState.enable)
             {
                 float position;
-
                 if (_autoScrollState.elastic)
                 {
-                    position = Mathf.SmoothDamp(_currentPosition, _currentPosition + offset, ref _velocity,
+                    position = Mathf.SmoothDamp(_curPosition, _curPosition + offset, ref _velocity,
                         elasticity, Mathf.Infinity, deltaTime);
 
                     if (Mathf.Abs(_velocity) < 0.01f)
@@ -118,8 +122,7 @@ namespace FancyScrollView
             else if (!(_dragging || _scrolling) &&
                      (!Mathf.Approximately(offset, 0f) || !Mathf.Approximately(_velocity, 0f)))
             {
-                var position = _currentPosition;
-
+                var position = _curPosition;
                 if (movementType == MovementType.Elastic && !Mathf.Approximately(offset, 0f))
                 {
                     _autoScrollState.Reset();
@@ -141,7 +144,7 @@ namespace FancyScrollView
 
                     if (snap.Enable && Mathf.Abs(_velocity) < snap.VelocityThreshold)
                     {
-                        ScrollTo(Mathf.RoundToInt(_currentPosition), snap.Duration, snap.Easing);
+                        ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
                     }
                 }
                 else
@@ -166,15 +169,6 @@ namespace FancyScrollView
                     UpdatePosition(position);
                 }
             }
-
-            if (!_autoScrollState.enable && (_dragging || _scrolling) && inertia)
-            {
-                var newVelocity = (_currentPosition - _prevPosition) / deltaTime;
-                _velocity = Mathf.Lerp(_velocity, newVelocity, deltaTime * 10f);
-            }
-
-            _prevPosition = _currentPosition;
-            _scrolling = false;
         }
 
         /// <inheritdoc/>
@@ -200,8 +194,8 @@ namespace FancyScrollView
 
             if (_hold && snap.Enable)
             {
-                UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(_currentPosition), 0, _totalCount - 1));
-                ScrollTo(Mathf.RoundToInt(_currentPosition), snap.Duration, snap.Easing);
+                UpdateSelection(Mathf.Clamp(Mathf.RoundToInt(_curPosition), 0, _totalCount - 1));
+                ScrollTo(Mathf.RoundToInt(_curPosition), snap.Duration, snap.Easing);
             }
 
             _hold = false;
@@ -216,7 +210,6 @@ namespace FancyScrollView
             }
 
             var delta = eventData.scrollDelta;
-
             // Down is positive for scroll events, while in UI system up is positive.
             delta.y *= -1;
             var scrollDelta = scrollDirection == ScrollDirection.Horizontal
@@ -226,13 +219,12 @@ namespace FancyScrollView
                 : Mathf.Abs(delta.x) > Mathf.Abs(delta.y)
                     ? delta.x
                     : delta.y;
-
             if (eventData.IsScrolling())
             {
                 _scrolling = true;
             }
 
-            var position = _currentPosition + scrollDelta / ViewportSize * scrollSensitivity;
+            var position = _curPosition + scrollDelta / ViewportSize * scrollSensitivity;
             if (movementType == MovementType.Clamped)
             {
                 position += CalculateOffset(position);
@@ -256,12 +248,8 @@ namespace FancyScrollView
 
             _hold = false;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                viewport,
-                eventData.position,
-                eventData.pressEventCamera,
-                out _beginDragPointerPosition);
-
-            _scrollStartPosition = _currentPosition;
+                viewport, eventData.position, eventData.pressEventCamera, out _beginDragPointerPosition);
+            _scrollStartPosition = _curPosition;
             _dragging = true;
             _autoScrollState.Reset();
         }
@@ -275,10 +263,10 @@ namespace FancyScrollView
             }
 
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                viewport,
-                eventData.position,
-                eventData.pressEventCamera,
-                out var dragPointerPosition))
+                    viewport,
+                    eventData.position,
+                    eventData.pressEventCamera,
+                    out var dragPointerPosition))
             {
                 return;
             }
@@ -318,7 +306,7 @@ namespace FancyScrollView
         /// スクロール位置が変化したときのコールバックを設定します.
         /// </summary>
         /// <param name="callback">スクロール位置が変化したときのコールバック.</param>
-        public void OnValueChanged(Action<float> callback) => _onValueChanged = callback;
+        public void OnValueChanged(Action<float> callback) => _onScrollValueChanged = callback;
 
         /// <summary>
         /// 選択位置が変化したときのコールバックを設定します.
@@ -334,6 +322,40 @@ namespace FancyScrollView
         /// </remarks>
         /// <param name="totalCount">アイテムの総数.</param>
         public void SetTotalCount(int totalCount) => _totalCount = totalCount;
+
+        /// <summary>
+        /// 指定したインデックスの位置までジャンプします.
+        /// </summary>
+        /// <param name="index">アイテムのインデックス.</param>
+        public void JumpTo(int index)
+        {
+            if (index < 0 || index > _totalCount - 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            UpdateSelection(index);
+            CurPosition = index;
+        }
+
+        /// <summary>
+        /// <paramref name="sourceIndex"/> から <paramref name="destIndex"/> に移動する際の移動方向を返します.
+        /// スクロール範囲が無制限に設定されている場合は, 最短距離の移動方向を返します.
+        /// </summary>
+        /// <param name="sourceIndex">移動元のインデックス.</param>
+        /// <param name="destIndex">移動先のインデックス.</param>
+        /// <returns></returns>
+        public MovementDirection GetMovementDirection(int sourceIndex, int destIndex)
+        {
+            var movementAmount = CalculateMovementAmount(sourceIndex, destIndex);
+            return scrollDirection == ScrollDirection.Horizontal
+                ? movementAmount > 0
+                    ? MovementDirection.Left
+                    : MovementDirection.Right
+                : movementAmount > 0
+                    ? MovementDirection.Up
+                    : MovementDirection.Down;
+        }
 
         /// <summary>
         /// 指定した位置まで移動します.
@@ -355,37 +377,31 @@ namespace FancyScrollView
             ScrollTo(position, duration, Easing.Get(easing), onComplete);
 
         /// <summary>
-        /// 指定したインデックスの位置までジャンプします.
+        /// 指定した位置まで移動します.
         /// </summary>
-        /// <param name="index">アイテムのインデックス.</param>
-        public void JumpTo(int index)
+        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
+        /// <param name="duration">移動にかける秒数.</param>
+        /// <param name="easingFunction">移動に使用するイージング関数.</param>
+        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
+        private void ScrollTo(float position, float duration, EasingFunction easingFunction, Action onComplete = null)
         {
-            if (index < 0 || index > _totalCount - 1)
+            if (duration <= 0f)
             {
-                throw new ArgumentOutOfRangeException(nameof(index));
+                CurPosition = CircularPosition(position, _totalCount);
+                onComplete?.Invoke();
+                return;
             }
 
-            UpdateSelection(index);
-            Position = index;
-        }
-
-        /// <summary>
-        /// <paramref name="sourceIndex"/> から <paramref name="destIndex"/> に移動する際の移動方向を返します.
-        /// スクロール範囲が無制限に設定されている場合は, 最短距離の移動方向を返します.
-        /// </summary>
-        /// <param name="sourceIndex">移動元のインデックス.</param>
-        /// <param name="destIndex">移動先のインデックス.</param>
-        /// <returns></returns>
-        public MovementDirection GetMovementDirection(int sourceIndex, int destIndex)
-        {
-            var movementAmount = CalculateMovementAmount(sourceIndex, destIndex);
-            return scrollDirection == ScrollDirection.Horizontal
-                ? movementAmount > 0
-                    ? MovementDirection.Left
-                    : MovementDirection.Right
-                : movementAmount > 0
-                    ? MovementDirection.Up
-                    : MovementDirection.Down;
+            _autoScrollState.Reset();
+            _autoScrollState.enable = true;
+            _autoScrollState.duration = duration;
+            _autoScrollState.easingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
+            _autoScrollState.startTime = Time.unscaledTime;
+            _autoScrollState.endPosition = _curPosition + CalculateMovementAmount(_curPosition, position);
+            _autoScrollState.onComplete = onComplete;
+            _velocity = 0f;
+            _scrollStartPosition = _curPosition;
+            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.endPosition, _totalCount)));
         }
 
         private float CalculateOffset(float position)
@@ -408,14 +424,21 @@ namespace FancyScrollView
             return 0f;
         }
 
-        private void UpdatePosition(float position, bool updateScrollbar = true)
+        private void UpdatePosition(float position)
         {
-            _onValueChanged?.Invoke(_currentPosition = position);
-
-            if (scrollbar && updateScrollbar)
+            OnScrollValueChanged(position);
+            if (!scrollbar)
             {
-                scrollbar.value = Mathf.Clamp01(position / Mathf.Max(_totalCount - 1f, 1e-4f));
+                return;
             }
+
+            scrollbar.value = Mathf.Clamp01(position / Mathf.Max(_totalCount - 1f, 1e-4f));
+        }
+
+        private void OnScrollValueChanged(float position)
+        {
+            _curPosition = position;
+            _onScrollValueChanged?.Invoke(position);
         }
 
         private void UpdateSelection(int index) => _onSelectionChanged?.Invoke(index);
@@ -431,7 +454,6 @@ namespace FancyScrollView
             }
 
             var amount = CircularPosition(destPosition, _totalCount) - CircularPosition(sourcePosition, _totalCount);
-
             if (Mathf.Abs(amount) > _totalCount * 0.5f)
             {
                 amount = Mathf.Sign(-amount) * (_totalCount - Mathf.Abs(amount));
@@ -444,33 +466,15 @@ namespace FancyScrollView
             size < 1 ? 0 : p < 0 ? size - 1 + (p + 1) % size : p % size;
 
         /// <summary>
-        /// 指定した位置まで移動します.
+        /// 慣性力の計算
         /// </summary>
-        /// <param name="position">スクロール位置. <c>0f</c> ~ <c>totalCount - 1f</c> の範囲.</param>
-        /// <param name="duration">移動にかける秒数.</param>
-        /// <param name="easingFunction">移動に使用するイージング関数.</param>
-        /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        private void ScrollTo(float position, float duration, EasingFunction easingFunction, Action onComplete = null)
+        private void CalcInertia(float deltaTime)
         {
-            if (duration <= 0f)
+            if (!_autoScrollState.enable && (_dragging || _scrolling) && inertia)
             {
-                Position = CircularPosition(position, _totalCount);
-                onComplete?.Invoke();
-                return;
+                var newVelocity = (_curPosition - _prevPosition) / deltaTime;
+                _velocity = Mathf.Lerp(_velocity, newVelocity, deltaTime * 10f);
             }
-
-            _autoScrollState.Reset();
-            _autoScrollState.enable = true;
-            _autoScrollState.duration = duration;
-            _autoScrollState.easingFunction = easingFunction ?? Easing.Get(Ease.OutCubic);
-            _autoScrollState.startTime = Time.unscaledTime;
-            _autoScrollState.endPosition = _currentPosition + CalculateMovementAmount(_currentPosition, position);
-            _autoScrollState.onComplete = onComplete;
-
-            _velocity = 0f;
-            _scrollStartPosition = _currentPosition;
-
-            UpdateSelection(Mathf.RoundToInt(CircularPosition(_autoScrollState.endPosition, _totalCount)));
         }
     }
 }

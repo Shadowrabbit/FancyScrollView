@@ -6,12 +6,14 @@
 
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FancyScrollView.Example03
 {
     class Example03 : MonoBehaviour
     {
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
 
         void Start()
         {
@@ -19,8 +21,8 @@ namespace FancyScrollView.Example03
                 .Select(i => new ItemData($"Cell {i}"))
                 .ToArray();
 
-            scrollView.UpdateData(items);
-            scrollView.SelectCell(0);
+            listView.UpdateData(items);
+            listView.SelectCell(0);
         }
     }
 }

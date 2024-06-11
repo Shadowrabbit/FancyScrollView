@@ -7,6 +7,7 @@
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace FancyScrollView.Example05
@@ -14,7 +15,8 @@ namespace FancyScrollView.Example05
     class Background : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] Image background = default;
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
 
         RectTransform rectTransform;
 
@@ -32,15 +34,15 @@ namespace FancyScrollView.Example05
         void LateUpdate()
         {
             var rect = rectTransform.rect.size * 0.5f;
-            var offset = scrollView.CellInstanceCount;
+            var offset = listView.CellInstanceCount;
 
-            scrollView.SetCellState(offset + 0, -1,  rect.x, -rect.y * 1.3f, 0f);
-            scrollView.SetCellState(offset + 1, -1, -rect.x,  rect.y * 1.3f, 0f);
-            scrollView.SetCellState(offset + 2, -1, -rect.x, -rect.y * 1.3f, 0f);
-            scrollView.SetCellState(offset + 3, -1,  rect.x,  rect.y * 1.3f, 0f);
+            listView.SetCellState(offset + 0, -1,  rect.x, -rect.y * 1.3f, 0f);
+            listView.SetCellState(offset + 1, -1, -rect.x,  rect.y * 1.3f, 0f);
+            listView.SetCellState(offset + 2, -1, -rect.x, -rect.y * 1.3f, 0f);
+            listView.SetCellState(offset + 3, -1,  rect.x,  rect.y * 1.3f, 0f);
 
             background.material.SetVector(Uniform.Resolution, rectTransform.rect.size);
-            background.material.SetVectorArray(Uniform.CellState, scrollView.GetCellState());
+            background.material.SetVectorArray(Uniform.CellState, listView.GetCellState());
         }
 
         void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
@@ -57,7 +59,7 @@ namespace FancyScrollView.Example05
                 out var clickPosition
             );
 
-            var cellState = scrollView.GetCellState()
+            var cellState = listView.GetCellState()
                 .Select((s, i) => (
                     index: i,
                     dataIndex: Mathf.RoundToInt(s.z),
@@ -81,7 +83,7 @@ namespace FancyScrollView.Example05
                 return;
             }
 
-            scrollView.SelectCell(target.dataIndex);
+            listView.SelectCell(target.dataIndex);
         }
     }
 }

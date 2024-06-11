@@ -8,12 +8,14 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EasingCore;
+using UnityEngine.Serialization;
 
-namespace FancyScrollView.Example05
+namespace FancyScrollView.Example04
 {
-    class ScrollView : FancyScrollView<ItemData, Context>
+    class ListView : FancyListView<ItemData, Context>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
         Action<int> onSelectionChanged;
@@ -28,8 +30,8 @@ namespace FancyScrollView.Example05
 
             Context.OnCellClicked = SelectCell;
 
-            scroller.OnValueChanged(UpdatePosition);
-            scroller.OnSelectionChanged(UpdateSelection);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnSelectionChanged(UpdateSelection);
         }
 
         public void UpdateSelection(int index)
@@ -48,7 +50,7 @@ namespace FancyScrollView.Example05
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
 
         public void OnSelectionChanged(Action<int> callback)
@@ -79,12 +81,12 @@ namespace FancyScrollView.Example05
 
         public void ScrollTo(float position, float duration, Ease easing, Action onComplete = null)
         {
-            scroller.ScrollTo(position, duration, easing, onComplete);
+            fancyScrollRect.ScrollTo(position, duration, easing, onComplete);
         }
 
         public void JumpTo(int index)
         {
-            scroller.JumpTo(index);
+            fancyScrollRect.JumpTo(index);
         }
 
         public Vector4[] GetCellState()
@@ -93,9 +95,9 @@ namespace FancyScrollView.Example05
             return Context.CellState;
         }
 
-        public void SetCellState(int cellIndex, int dataIndex, float x, float y, float selectAnimation)
+        public void SetCellState(int cellIndex, int dataIndex, float x, float y, float scale)
         {
-            Context.SetCellState(cellIndex, dataIndex, x, y, selectAnimation);
+            Context.SetCellState(cellIndex, dataIndex, x, y, scale);
         }
     }
 }

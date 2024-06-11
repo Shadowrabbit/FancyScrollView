@@ -11,7 +11,7 @@ using EasingCore;
 
 namespace FancyScrollView.Example07
 {
-    class ScrollView : FancyScrollRect<ItemData, Context>
+    class ListView : FancyScrollView<ItemData, Context>
     {
         [SerializeField] float cellSize = 100f;
         [SerializeField] GameObject cellPrefab = default;

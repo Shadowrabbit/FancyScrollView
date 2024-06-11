@@ -1,4 +1,4 @@
-/*
+﻿/*
  * FancyScrollView (https://github.com/setchi/FancyScrollView)
  * Copyright (c) 2020 setchi
  * Licensed under MIT (https://github.com/setchi/FancyScrollView/blob/master/LICENSE)
@@ -8,15 +8,17 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EasingCore;
+using UnityEngine.Serialization;
 
-namespace FancyScrollView.Example06
+namespace FancyScrollView.Example02
 {
-    class ScrollView : FancyScrollView<ItemData, Context>
+    class ListView : FancyListView<ItemData, Context>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
-        Action<int, MovementDirection> onSelectionChanged;
+        Action<int> onSelectionChanged;
 
         protected override GameObject CellPrefab => cellPrefab;
 
@@ -26,8 +28,8 @@ namespace FancyScrollView.Example06
 
             Context.OnCellClicked = SelectCell;
 
-            scroller.OnValueChanged(UpdatePosition);
-            scroller.OnSelectionChanged(UpdateSelection);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnSelectionChanged(UpdateSelection);
         }
 
         void UpdateSelection(int index)
@@ -37,21 +39,19 @@ namespace FancyScrollView.Example06
                 return;
             }
 
-            var direction = scroller.GetMovementDirection(Context.SelectedIndex, index);
-
             Context.SelectedIndex = index;
             Refresh();
 
-            onSelectionChanged?.Invoke(index, direction);
+            onSelectionChanged?.Invoke(index);
         }
 
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
 
-        public void OnSelectionChanged(Action<int, MovementDirection> callback)
+        public void OnSelectionChanged(Action<int> callback)
         {
             onSelectionChanged = callback;
         }
@@ -73,7 +73,8 @@ namespace FancyScrollView.Example06
                 return;
             }
 
-            scroller.ScrollTo(index, 0.35f, Ease.OutCubic);
+            UpdateSelection(index);
+            fancyScrollRect.ScrollTo(index, 0.35f, Ease.OutCubic);
         }
     }
 }

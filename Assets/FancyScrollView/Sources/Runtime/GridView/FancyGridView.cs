@@ -15,12 +15,12 @@ namespace FancyScrollView
     /// <summary>
     /// グリッドレイアウトのスクロールビューを実装するための抽象基底クラス.
     /// 無限スクロールおよびスナップには対応していません.
-    /// <see cref="FancyScrollView{TItemData, TContext}.Context"/> が不要な場合は
+    /// <see cref="FancyListView{TItemData,TContext}.Context"/> が不要な場合は
     /// 代わりに <see cref="FancyGridView{TItemData}"/> を使用します.
     /// </summary>
     /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
-    /// <typeparam name="TContext"><see cref="FancyScrollView{TItemData, TContext}.Context"/> の型.</typeparam>
-    public abstract class FancyGridView<TItemData, TContext> : FancyScrollRect<TItemData[], TContext>
+    /// <typeparam name="TContext"><see cref="FancyListView{TItemData,TContext}.Context"/> の型.</typeparam>
+    public abstract class FancyGridView<TItemData, TContext> : FancyScrollView<TItemData[], TContext>
         where TContext : class, IFancyGridViewContext, new()
     {
         /// <summary>
@@ -48,12 +48,12 @@ namespace FancyScrollView
         /// </summary>
         /// <remarks>
         /// <see cref="FancyGridView{TItemData, TContext}"/> では,
-        /// <see cref="FancyScrollView{TItemData, TContext}.CellPrefab"/> を最初にセルを配置する軸方向のセルコンテナとして使用します.
+        /// <see cref="FancyListView{TItemData,TContext}.CellPrefab"/> を最初にセルを配置する軸方向のセルコンテナとして使用します.
         /// </remarks>
         protected sealed override GameObject CellPrefab => cellGroupTemplate;
 
         /// <inheritdoc/>
-        protected override float CellSize => Scroller.scrollDirection == ScrollDirection.Horizontal
+        protected override float CellSize => FancyScrollRect.scrollDirection == ScrollDirection.Horizontal
             ? cellSize.x
             : cellSize.y;
 
@@ -71,10 +71,10 @@ namespace FancyScrollView
 
             Debug.Assert(startAxisCellCount > 0);
 
-            Context.ScrollDirection = Scroller.scrollDirection;
+            Context.ScrollDirection = FancyScrollRect.scrollDirection;
             Context.GetGroupCount = () => startAxisCellCount;
             Context.GetStartAxisSpacing = () => startAxisSpacing;
-            Context.GetCellSize = () => Scroller.scrollDirection == ScrollDirection.Horizontal
+            Context.GetCellSize = () => FancyScrollRect.scrollDirection == ScrollDirection.Horizontal
                 ? cellSize.y
                 : cellSize.x;
 

@@ -6,30 +6,32 @@
 
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace FancyScrollView.Example05
 {
     class Example05 : MonoBehaviour
     {
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
         [SerializeField] Button prevCellButton = default;
         [SerializeField] Button nextCellButton = default;
         [SerializeField] Text selectedItemInfo = default;
 
         void Start()
         {
-            prevCellButton.onClick.AddListener(scrollView.SelectPrevCell);
-            nextCellButton.onClick.AddListener(scrollView.SelectNextCell);
-            scrollView.OnSelectionChanged(OnSelectionChanged);
+            prevCellButton.onClick.AddListener(listView.SelectPrevCell);
+            nextCellButton.onClick.AddListener(listView.SelectNextCell);
+            listView.OnSelectionChanged(OnSelectionChanged);
 
             var items = Enumerable.Range(0, 20)
                 .Select(i => new ItemData($"Cell {i}"))
                 .ToList();
 
-            scrollView.UpdateData(items);
-            scrollView.UpdateSelection(10);
-            scrollView.JumpTo(10);
+            listView.UpdateData(items);
+            listView.UpdateSelection(10);
+            listView.JumpTo(10);
         }
 
         void OnSelectionChanged(int index)

@@ -8,17 +8,21 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using EasingCore;
+using UnityEngine.Serialization;
 
-namespace FancyScrollView.Example02
+namespace FancyScrollView.Example05
 {
-    class ScrollView : FancyScrollView<ItemData, Context>
+    class ListView : FancyListView<ItemData, Context>
     {
-        [SerializeField] Scroller scroller = default;
+        [FormerlySerializedAs("scroller")]
+        [SerializeField] FancyScrollRect fancyScrollRect = default;
         [SerializeField] GameObject cellPrefab = default;
 
         Action<int> onSelectionChanged;
 
         protected override GameObject CellPrefab => cellPrefab;
+
+        public int CellInstanceCount => Mathf.CeilToInt(1f / Mathf.Max(cellInterval, 1e-3f));
 
         protected override void Initialize()
         {
@@ -26,11 +30,11 @@ namespace FancyScrollView.Example02
 
             Context.OnCellClicked = SelectCell;
 
-            scroller.OnValueChanged(UpdatePosition);
-            scroller.OnSelectionChanged(UpdateSelection);
+            fancyScrollRect.OnValueChanged(UpdatePosition);
+            fancyScrollRect.OnSelectionChanged(UpdateSelection);
         }
 
-        void UpdateSelection(int index)
+        public void UpdateSelection(int index)
         {
             if (Context.SelectedIndex == index)
             {
@@ -46,7 +50,7 @@ namespace FancyScrollView.Example02
         public void UpdateData(IList<ItemData> items)
         {
             UpdateContents(items);
-            scroller.SetTotalCount(items.Count);
+            fancyScrollRect.SetTotalCount(items.Count);
         }
 
         public void OnSelectionChanged(Action<int> callback)
@@ -72,7 +76,28 @@ namespace FancyScrollView.Example02
             }
 
             UpdateSelection(index);
-            scroller.ScrollTo(index, 0.35f, Ease.OutCubic);
+            ScrollTo(index, 0.35f, Ease.OutCubic);
+        }
+
+        public void ScrollTo(float position, float duration, Ease easing, Action onComplete = null)
+        {
+            fancyScrollRect.ScrollTo(position, duration, easing, onComplete);
+        }
+
+        public void JumpTo(int index)
+        {
+            fancyScrollRect.JumpTo(index);
+        }
+
+        public Vector4[] GetCellState()
+        {
+            Context.UpdateCellState?.Invoke();
+            return Context.CellState;
+        }
+
+        public void SetCellState(int cellIndex, int dataIndex, float x, float y, float selectAnimation)
+        {
+            Context.SetCellState(cellIndex, dataIndex, x, y, selectAnimation);
         }
     }
 }

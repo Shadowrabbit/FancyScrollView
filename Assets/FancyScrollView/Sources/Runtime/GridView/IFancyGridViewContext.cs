@@ -11,7 +11,7 @@ namespace FancyScrollView
     /// <summary>
     /// <see cref="FancyGridView{TItemData, TContext}"/> のコンテキストインターフェース.
     /// </summary>
-    public interface IFancyGridViewContext : IFancyScrollRectContext, IFancyCellGroupContext
+    public interface IFancyGridViewContext : IFancyScrollContext, IFancyCellGroupContext
     {
         Func<float> GetStartAxisSpacing { get; set; }
         Func<float> GetCellSize { get; set ; }

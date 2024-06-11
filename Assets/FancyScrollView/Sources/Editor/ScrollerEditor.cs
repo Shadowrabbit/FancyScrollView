@@ -11,7 +11,7 @@ using UnityEditor.AnimatedValues;
 
 namespace FancyScrollView
 {
-    [CustomEditor(typeof(Scroller))]
+    [CustomEditor(typeof(FancyScrollRect))]
     [CanEditMultipleObjects]
     public class ScrollerEditor : Editor
     {

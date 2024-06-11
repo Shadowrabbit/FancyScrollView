@@ -5,6 +5,7 @@
  */
 
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FancyScrollView.Example09
 {
@@ -64,11 +65,12 @@ namespace FancyScrollView.Example09
             )
         };
 
-        [SerializeField] ScrollView scrollView = default;
+        [FormerlySerializedAs("scrollView")]
+        [SerializeField] ListView listView = default;
 
         void Start()
         {
-            scrollView.UpdateData(itemData);
+            listView.UpdateData(itemData);
         }
     }
 }
