@@ -14,6 +14,14 @@ namespace FancyScrollView
     /// <summary>
     /// ScrollRect スタイルのスクロールビューを実装するための抽象基底クラス.
     /// 無限スクロールおよびスナップには対応していません.
+    /// </summary>
+    /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
+    /// <seealso cref="FancyScrollView{TItemData,TContext}"/>
+    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, FancyScrollContext> { }
+
+    /// <summary>
+    /// ScrollRect スタイルのスクロールビューを実装するための抽象基底クラス.
+    /// 無限スクロールおよびスナップには対応していません.
     /// <see cref="FancyListView{TItemData,TContext}.Context"/> が不要な場合は
     /// 代わりに <see cref="FancyScrollView{TItemData}"/> を使用します.
     /// </summary>
@@ -291,12 +299,4 @@ namespace FancyScrollView
             }
         }
     }
-
-    /// <summary>
-    /// ScrollRect スタイルのスクロールビューを実装するための抽象基底クラス.
-    /// 無限スクロールおよびスナップには対応していません.
-    /// </summary>
-    /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
-    /// <seealso cref="FancyScrollView{TItemData,TContext}"/>
-    public abstract class FancyScrollView<TItemData> : FancyScrollView<TItemData, FancyScrollContext> { }
 }

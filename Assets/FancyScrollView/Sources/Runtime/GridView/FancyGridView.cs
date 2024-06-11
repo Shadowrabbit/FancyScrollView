@@ -15,6 +15,14 @@ namespace FancyScrollView
     /// <summary>
     /// グリッドレイアウトのスクロールビューを実装するための抽象基底クラス.
     /// 無限スクロールおよびスナップには対応していません.
+    /// </summary>
+    /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
+    /// <seealso cref="FancyGridView{TItemData, TContext}"/>
+    public abstract class FancyGridView<TItemData> : FancyGridView<TItemData, FancyGridViewContext> { }
+
+    /// <summary>
+    /// グリッドレイアウトのスクロールビューを実装するための抽象基底クラス.
+    /// 無限スクロールおよびスナップには対応していません.
     /// <see cref="FancyListView{TItemData,TContext}.Context"/> が不要な場合は
     /// 代わりに <see cref="FancyGridView{TItemData}"/> を使用します.
     /// </summary>
@@ -28,20 +36,10 @@ namespace FancyScrollView
         /// </summary>
         protected abstract class DefaultCellGroup : FancyCellGroup<TItemData, TContext> { }
 
-        /// <summary>
-        /// 最初にセルを配置する軸方向のセル同士の余白.
-        /// </summary>
-        [SerializeField] protected float startAxisSpacing = 0f;
-
-        /// <summary>
-        /// 最初にセルを配置する軸方向のセル数.
-        /// </summary>
-        [SerializeField] protected int startAxisCellCount = 4;
-
-        /// <summary>
-        /// セルのサイズ.
-        /// </summary>
-        [SerializeField] protected Vector2 cellSize = new Vector2(100f, 100f);
+        [SerializeField] protected float startAxisSpacing = 0f; //最初にセルを配置する軸方向のセル同士の余白.
+        [SerializeField] protected int startAxisCellCount = 4; //最初にセルを配置する軸方向のセル数.
+        [SerializeField] protected Vector2 cellSize = new Vector2(100f, 100f); //セルのサイズ.
+        private GameObject _cellGroupTemplate;
 
         /// <summary>
         /// セルのグループ Prefab.
@@ -50,19 +48,14 @@ namespace FancyScrollView
         /// <see cref="FancyGridView{TItemData, TContext}"/> では,
         /// <see cref="FancyListView{TItemData,TContext}.CellPrefab"/> を最初にセルを配置する軸方向のセルコンテナとして使用します.
         /// </remarks>
-        protected sealed override GameObject CellPrefab => cellGroupTemplate;
+        protected sealed override GameObject CellPrefab => _cellGroupTemplate;
 
         /// <inheritdoc/>
         protected override float CellSize => FancyScrollRect.scrollDirection == ScrollDirection.Horizontal
             ? cellSize.x
             : cellSize.y;
 
-        /// <summary>
-        /// アイテムの総数.
-        /// </summary>
-        public int DataCount { get; private set; }
-
-        GameObject cellGroupTemplate;
+        public int DataCount { get; private set; } //アイテムの総数.
 
         /// <inheritdoc/>
         protected override void Initialize()
@@ -82,24 +75,9 @@ namespace FancyScrollView
         }
 
         /// <summary>
-        /// 最初にセルが生成される直前に呼び出されます.
+        /// 最初にセルが生成される直前に呼び出されます
         /// <see cref="Setup{TGroup}(FancyCell{TItemData, TContext})"/> メソッドを使用してセルテンプレートのセットアップを行ってください.
         /// </summary>
-        /// <example>
-        /// <code><![CDATA[
-        /// using UnityEngine;
-        /// using FancyScrollView;
-        /// 
-        /// public class MyGridView : FancyGridView<ItemData, Context>
-        /// {
-        ///     class CellGroup : DefaultCellGroup { }
-        /// 
-        ///     [SerializeField] Cell cellPrefab = default;
-        /// 
-        ///     protected override void SetupCellTemplate() => Setup<CellGroup>(cellPrefab);
-        /// }
-        /// ]]></code>
-        /// </example>
         protected abstract void SetupCellTemplate();
 
         /// <summary>
@@ -111,10 +89,9 @@ namespace FancyScrollView
             where TGroup : FancyCell<TItemData[], TContext>
         {
             Context.CellTemplate = cellTemplate.gameObject;
-
-            cellGroupTemplate = new GameObject("Group").AddComponent<TGroup>().gameObject;
-            cellGroupTemplate.transform.SetParent(cellContainer, false);
-            cellGroupTemplate.SetActive(false);
+            _cellGroupTemplate = new GameObject("Group").AddComponent<TGroup>().gameObject;
+            _cellGroupTemplate.transform.SetParent(cellContainer, false);
+            _cellGroupTemplate.SetActive(false);
         }
 
         /// <summary>
@@ -124,15 +101,11 @@ namespace FancyScrollView
         public virtual void UpdateContents(IList<TItemData> items)
         {
             DataCount = items.Count;
-
             var itemGroups = items
                 .Select((item, index) => (item, index))
-                .GroupBy(
-                    x => x.index / startAxisCellCount,
-                    x => x.item)
+                .GroupBy(x => x.index / startAxisCellCount, x => x.item)
                 .Select(group => group.ToArray())
                 .ToArray();
-
             UpdateContents(itemGroups);
         }
 
@@ -154,7 +127,8 @@ namespace FancyScrollView
         /// <param name="duration">移動にかける秒数.</param>
         /// <param name="alignment">ビューポート内におけるセル位置の基準. 0f(先頭) ~ 1f(末尾).</param>
         /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        protected override void ScrollTo(int itemIndex, float duration, float alignment = 0.5f, Action onComplete = null)
+        protected override void ScrollTo(int itemIndex, float duration, float alignment = 0.5f,
+            Action onComplete = null)
         {
             var groupIndex = itemIndex / startAxisCellCount;
             base.ScrollTo(groupIndex, duration, alignment, onComplete);
@@ -168,18 +142,11 @@ namespace FancyScrollView
         /// <param name="easing">移動に使用するイージング.</param>
         /// <param name="alignment">ビューポート内におけるセル位置の基準. 0f(先頭) ~ 1f(末尾).</param>
         /// <param name="onComplete">移動が完了した際に呼び出されるコールバック.</param>
-        protected override void ScrollTo(int itemIndex, float duration, Ease easing, float alignment = 0.5f, Action onComplete = null)
+        protected override void ScrollTo(int itemIndex, float duration, Ease easing, float alignment = 0.5f,
+            Action onComplete = null)
         {
             var groupIndex = itemIndex / startAxisCellCount;
             base.ScrollTo(groupIndex, duration, easing, alignment, onComplete);
         }
     }
-
-    /// <summary>
-    /// グリッドレイアウトのスクロールビューを実装するための抽象基底クラス.
-    /// 無限スクロールおよびスナップには対応していません.
-    /// </summary>
-    /// <typeparam name="TItemData">アイテムのデータ型.</typeparam>
-    /// <seealso cref="FancyGridView{TItemData, TContext}"/>
-    public abstract class FancyGridView<TItemData> : FancyGridView<TItemData, FancyGridViewContext> { }
 }
