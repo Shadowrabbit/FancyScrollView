@@ -81,13 +81,7 @@ namespace FancyScrollView
         {
             base.Initialize();
             Context.ScrollDirection = FancyScrollRect.scrollDirection;
-            Context.CalculateScrollSize = () =>
-            {
-                var interval = CellSize + spacing;
-                var reuseMargin = interval * reuseCellMarginCount;
-                var scrollSize = FancyScrollRect.ViewportSize + interval + reuseMargin * 2f;
-                return (scrollSize, reuseMargin);
-            };
+            Context.CalculateScrollSize = DefaultContextCalculateScrollSize;
             AdjustCellIntervalAndScrollOffset();
             FancyScrollRect.OnValueChanged(OnScrollerValueChanged);
         }
@@ -282,6 +276,14 @@ namespace FancyScrollView
         {
             var scale = 1f - ToFancyScrollViewPosition(offset) / (ViewportLength - PaddingHeadLength);
             UpdateScrollbarSize((ViewportLength - PaddingHeadLength) * scale);
+        }
+
+        private (float ScrollSize, float ReuseMargin) DefaultContextCalculateScrollSize()
+        {
+            var interval = CellSize + spacing;
+            var reuseMargin = interval * reuseCellMarginCount;
+            var scrollSize = FancyScrollRect.ViewportSize + interval + reuseMargin * 2f;
+            return (scrollSize, reuseMargin);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace FancyScrollView
     /// </summary>
     public class FancyScrollContext : IFancyScrollContext
     {
-        ScrollDirection IFancyScrollContext.ScrollDirection { get; set; }
-        Func<(float ScrollSize, float ReuseMargin)> IFancyScrollContext.CalculateScrollSize { get; set; }
+        public ScrollDirection ScrollDirection { get; set; }
+        public Func<(float ScrollSize, float ReuseMargin)> CalculateScrollSize { get; set; }
     }
 }

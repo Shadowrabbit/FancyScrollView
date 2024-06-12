@@ -30,10 +30,12 @@ namespace FancyScrollView.Example07
                 : new Color32(255, 255, 255, 77);
         }
 
-        protected override void UpdatePosition(float normalizedPosition, float localPosition)
+        public override void UpdatePosition(float position)
         {
-            base.UpdatePosition(normalizedPosition, localPosition);
-
+            base.UpdatePosition(position);
+            var (scrollSize, reuseMargin) = Context.CalculateScrollSize();
+            var normalizedPosition =
+                (Mathf.Lerp(0f, scrollSize, position) - reuseMargin) / (scrollSize - reuseMargin * 2f);
             var wave = Mathf.Sin(normalizedPosition * Mathf.PI * 2) * 65;
             transform.localPosition += Vector3.right * wave;
         }

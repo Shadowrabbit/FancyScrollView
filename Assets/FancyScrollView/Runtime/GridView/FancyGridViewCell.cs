@@ -18,16 +18,17 @@ namespace FancyScrollView
     public abstract class FancyGridViewCell<TItemData, TContext> : FancyScrollCell<TItemData, TContext>
         where TContext : class, IFancyGridViewContext, new()
     {
-        /// <inheritdoc/>
-        protected override void UpdatePosition(float normalizedPosition, float localPosition)
+        public override void UpdatePosition(float position)
         {
+            var (scrollSize, _) = Context.CalculateScrollSize();
+            var start = 0.5f * scrollSize;
+            var end = -start;
+            var localPosition = Mathf.Lerp(start, end, position);
             var cellSize = Context.GetCellSize();
             var spacing = Context.GetStartAxisSpacing();
             var groupCount = Context.GetGroupCount();
-
             var indexInGroup = Index % groupCount;
             var positionInGroup = (cellSize + spacing) * (indexInGroup - (groupCount - 1) * 0.5f);
-
             transform.localPosition = Context.ScrollDirection == ScrollDirection.Horizontal
                 ? new Vector2(-localPosition, -positionInGroup)
                 : new Vector2(positionInGroup, localPosition);

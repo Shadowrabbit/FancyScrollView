@@ -23,17 +23,16 @@ namespace FancyScrollView.Example08
         public override void UpdateContent(ItemData itemData)
         {
             message.text = itemData.Index.ToString();
-
             var selected = Context.SelectedIndex == Index;
             image.color = selected
                 ? new Color32(0, 255, 255, 100)
                 : new Color32(255, 255, 255, 77);
         }
 
-        protected override void UpdatePosition(float normalizedPosition, float localPosition)
+        public override void UpdatePosition(float position)
         {
-            base.UpdatePosition(normalizedPosition, localPosition);
-
+            base.UpdatePosition(position);
+            var normalizedPosition = CalcNormalizedPosition(position);
             var wave = Mathf.Sin(normalizedPosition * Mathf.PI * 2) * 65;
             transform.localPosition += Vector3.right * wave;
         }

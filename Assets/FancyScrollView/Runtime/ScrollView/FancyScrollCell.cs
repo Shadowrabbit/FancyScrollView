@@ -21,24 +21,21 @@ namespace FancyScrollView
         /// <inheritdoc/>
         public override void UpdatePosition(float position)
         {
-            var (scrollSize, reuseMargin) = Context.CalculateScrollSize();
-            var normalizedPosition =
-                (Mathf.Lerp(0f, scrollSize, position) - reuseMargin) / (scrollSize - reuseMargin * 2f);
+            var (scrollSize, _) = Context.CalculateScrollSize();
             var start = 0.5f * scrollSize;
             var end = -start;
-            UpdatePosition(normalizedPosition, Mathf.Lerp(start, end, position));
-        }
-
-        /// <summary>
-        /// このセルの位置を更新します
-        /// </summary>
-        /// <param name="normalizedPosition">ビューポートの範囲で正規化されたスクロール位置.</param>
-        /// <param name="localPosition">ローカル位置</param>
-        protected virtual void UpdatePosition(float normalizedPosition, float localPosition)
-        {
+            var localPosition = Mathf.Lerp(start, end, position);
             transform.localPosition = Context.ScrollDirection == ScrollDirection.Horizontal
                 ? new Vector2(-localPosition, 0)
                 : new Vector2(0, localPosition);
+        }
+
+        public float CalcNormalizedPosition(float position)
+        {
+            var (scrollSize, reuseMargin) = Context.CalculateScrollSize();
+            var normalizedPosition =
+                (Mathf.Lerp(0f, scrollSize, position) - reuseMargin) / (scrollSize - reuseMargin * 2f);
+            return normalizedPosition;
         }
     }
 
