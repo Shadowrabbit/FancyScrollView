@@ -6,13 +6,11 @@
 
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace FancyScrollView.Example01
 {
     class Example01 : MonoBehaviour
     {
-        [FormerlySerializedAs("scrollView")]
         [SerializeField] ListView listView = default;
 
         void Start()

@@ -4,6 +4,7 @@
  * Licensed under MIT (https://github.com/setchi/FancyScrollView/blob/master/LICENSE)
  */
 
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.AnimatedValues;
 
@@ -159,3 +160,4 @@ namespace FancyScrollView
         }
     }
 }
+#endif
